@@ -25,8 +25,8 @@ public class Post {
     @Column(nullable = false, length = 2000)
     private String content;
 
-    @Column(nullable = false)
-    private String username;
+    @Column(name="image_url", nullable = true)
+    private String imageUrl;
 
     @Column(name = "user_id", nullable = false)
     private Long userId;

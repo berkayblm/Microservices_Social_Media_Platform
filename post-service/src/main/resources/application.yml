@@ -29,14 +29,7 @@ jwt:
   secret: mySecretKey12345678901234567890
   expiration: 86400000
 
----
-# Production profile
-spring:
-  config.activate.on-profile: prod
-  datasource:
-    url: jdbc:mysql://mysql-post:3306/post_db
 
-eureka:
-  client:
-    service-url:
-      defaultZone: http://eureka-server:8761/eureka
+logging:
+  level:
+    org.springframework.security: DEBUG

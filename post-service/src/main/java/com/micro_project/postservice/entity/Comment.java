@@ -24,9 +24,6 @@ public class Comment {
     @Column(nullable = false, length = 1000)
     private String content;
 
-    @Column(nullable = false)
-    private String username;
-
     @Column(name = "user_id", nullable = false)
     private Long userId;
 

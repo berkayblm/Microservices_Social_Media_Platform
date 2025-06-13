@@ -1,6 +1,7 @@
 package com.micro_project.userservice.controller;
 
 import com.micro_project.userservice.config.JwtUtil;
+import com.micro_project.userservice.dto.UserDto;
 import com.micro_project.userservice.entity.User;
 import com.micro_project.userservice.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,15 +40,29 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/validate-token")
-    public Boolean validateToken(@RequestParam String token) {
+    @PostMapping("/validateToken")
+    public ResponseEntity<UserDto> validateTokenAndGetUser(@RequestParam String token) {
         try {
-            // Basic validation that the token is not expired
-            return !jwtUtil.isTokenExpired(token);
+            if (jwtUtil.isTokenExpired(token)) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            // Extract user information from token
+            String username = jwtUtil.extractUsername(token);
+            Long userId = jwtUtil.extractUserId(token);
+
+            // Create and return UserDto
+            UserDto userDto = new UserDto();
+            userDto.setId(userId);
+            userDto.setUsername(username);
+            userDto.setToken(token);
+
+            return ResponseEntity.ok(userDto);
         } catch (Exception e) {
-            return false;
+            return ResponseEntity.badRequest().build();
         }
     }
+
 
     @GetMapping("/token/user-id")
     public Long getUserIdFromToken(@RequestParam String token) {

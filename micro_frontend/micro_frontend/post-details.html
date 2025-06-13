@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post Details - SocialApp</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body class="bg-light">
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+  <div class="container">
+    <a class="navbar-brand" href="feed.html">SocialApp</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link" href="feed.html"><i class="fas fa-home"></i> Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="profile.html"><i class="fas fa-user"></i> Profile</a>
+        </li>
+      </ul>
+      <div class="d-flex">
+        <div class="dropdown">
+          <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
+            <span id="currentUsername">User</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="profile.html">My Profile</a></li>
+            <li><a class="dropdown-item" href="#" id="logoutBtn">Logout</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<div class="container py-4">
+  <div class="row">
+    <!-- Post Details Column -->
+    <div class="col-lg-8">
+      <!-- Post Content -->
+      <div id="postDetails" class="mb-4">
+        <div class="text-center py-5" id="postLoader">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2">Loading post...</p>
+        </div>
+      </div>
+
+      <!-- Comments Section -->
+      <div class="card shadow-sm mb-4" id="commentsSection">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Comments</h5>
+          <span class="badge bg-primary" id="commentCount">0</span>
+        </div>
+        <div class="card-body">
+          <form id="addCommentForm" class="mb-4">
+            <div class="input-group">
+              <input type="text" class="form-control" id="commentInput" placeholder="Add a comment...">
+              <button class="btn btn-primary" type="submit" id="addCommentBtn">
+                <span id="commentSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                <span id="commentText">Post</span>
+              </button>
+            </div>
+          </form>
+
+          <div id="commentsContainer">
+            <!-- Comments will be loaded here -->
+            <div class="text-center py-3" id="commentsLoader">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Loading comments...</p>
+            </div>
+          </div>
+
+          <!-- Load More Comments Button -->
+          <div class="text-center mt-3 d-none" id="loadMoreCommentsContainer">
+            <button class="btn btn-outline-primary" id="loadMoreCommentsBtn">
+              <span id="loadMoreCommentsSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+              <span id="loadMoreCommentsText">Load More Comments</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">About the Author</h5>
+        </div>
+        <div class="card-body" id="authorInfo">
+          <div class="text-center py-3" id="authorLoader">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading author info...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Related Posts</h5>
+        </div>
+        <div class="card-body">
+          <div id="relatedPosts">
+            <div class="text-center py-3" id="relatedPostsLoader">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Loading related posts...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Comment Template (Hidden) -->
+<template id="commentTemplate">
+  <div class="d-flex mb-3 comment-item">
+    <img src="assets/img/default-avatar.png" alt="Profile" class="rounded-circle me-2" width="32" height="32">
+    <div class="flex-grow-1">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <h6 class="mb-0 comment-username">Username</h6>
+          <small class="text-muted comment-date">Just now</small>
+        </div>
+        <div class="dropdown comment-actions">
+          <button class="btn btn-sm" type="button" data-bs-toggle="dropdown">
+            <i class="fas fa-ellipsis-h"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item edit-comment-btn" href="#"><i class="fas fa-edit me-2"></i>Edit</a></li>
+            <li><a class="dropdown-item delete-comment-btn" href="#"><i class="fas fa-trash me-2"></i>Delete</a></li>
+          </ul>
+        </div>
+      </div>
+      <p class="mb-0 comment-content">Comment text goes here...</p>
+    </div>
+  </div>
+</template>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.7/dayjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.7/plugin/relativeTime.js"></script>
+<script>dayjs.extend(window.dayjs_plugin_relativeTime)</script>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/post.js"></script>
+<script src="assets/js/comment.js"></script>
+</body>
+</html>

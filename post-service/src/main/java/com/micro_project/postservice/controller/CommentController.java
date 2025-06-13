@@ -1,7 +1,11 @@
 package com.micro_project.postservice.controller;
 
+import com.micro_project.postservice.dto.CommentCreateRequest;
 import com.micro_project.postservice.dto.CommentDto;
+import com.micro_project.postservice.dto.CommentUpdateRequest;
+import com.micro_project.postservice.dto.PagedCommentResponse;
 import com.micro_project.postservice.service.CommentService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -12,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/comments")
+@RequestMapping("/api/posts/comments")
 public class CommentController {
 
     private final CommentService commentService;
@@ -23,18 +27,20 @@ public class CommentController {
     }
 
     @GetMapping("/post/{postId}")
-    public ResponseEntity<Map<String, Object>> getCommentsByPostId(
+    public ResponseEntity<PagedCommentResponse> getCommentsByPostId(
             @PathVariable Long postId,
+            @RequestHeader(value = "userId") Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        Page<CommentDto> commentsPage = commentService.getCommentsByPostId(postId, page, size);
+        Page<CommentDto> commentsPage = commentService.getCommentsByPostId(postId,userId,  page, size);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("comments", commentsPage.getContent());
-        response.put("currentPage", commentsPage.getNumber());
-        response.put("totalItems", commentsPage.getTotalElements());
-        response.put("totalPages", commentsPage.getTotalPages());
+        PagedCommentResponse response = new PagedCommentResponse(
+                commentsPage.getContent(),
+                commentsPage.getNumber(),
+                commentsPage.getTotalElements(),
+                commentsPage.getTotalPages()
+        );
 
         return ResponseEntity.ok(response);
     }
@@ -42,44 +48,38 @@ public class CommentController {
     @PostMapping("/post/{postId}")
     public ResponseEntity<CommentDto> addComment(
             @PathVariable Long postId,
-            @RequestBody Map<String, String> request) {
+            @RequestHeader(value = "userId") Long userId,
+            @Valid @RequestBody CommentCreateRequest request) {
 
-        String content = request.get("content");
-
-        if (content == null || content.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        CommentDto commentDto = commentService.addComment(postId, content);
+        CommentDto commentDto = commentService.addComment(postId, userId, request.getContent());
         return ResponseEntity.status(HttpStatus.CREATED).body(commentDto);
     }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<CommentDto> updateComment(
             @PathVariable Long id,
-            @RequestBody Map<String, String> request) {
-
-        String content = request.get("content");
-
-        if (content == null || content.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
+            @RequestHeader(value = "userId") Long userId,
+            @Valid @RequestBody CommentUpdateRequest request) {
 
         try {
-            CommentDto updatedComment = commentService.updateComment(id, content);
+            CommentDto updatedComment = commentService.updateComment(id, userId, request.getContent());
             return ResponseEntity.ok(updatedComment);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
     }
 
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteComment(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteComment(@PathVariable Long id,
+                                              @RequestHeader(value = "userId") Long userId) {
         try {
-            commentService.deleteComment(id);
+            commentService.deleteComment(id, userId);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
     }
+
 }

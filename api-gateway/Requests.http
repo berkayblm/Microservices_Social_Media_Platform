@@ -1,0 +1,54 @@
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "berkay",
+  "email": "berkay@example.com",
+  "password": "password123"
+}
+
+> {%
+    client.global.set("auth_token", response.body.token);
+    client.global.set("username", response.body.username);
+    client.global.set("email", response.body.email);
+%}
+
+### Login with the registered user
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "berkay",
+  "password": "password123"
+}
+
+> {%
+    client.global.set("auth_token", response.body.token);
+%}
+
+### Get user information by ID (protected endpoint)
+GET http://localhost:8080/api/users/1
+Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjQsInN1YiI6ImJlcmtheSIsImlhdCI6MTc0OTc0MjQ3MSwiZXhwIjoxNzQ5ODI4ODcxfQ.mjWE-qBRv8L3ud-W8SeHK6SfYwQxB15KD2lWLfUzYYb9j_rjXETJpi8KaVQxQvpF2ixnGMCDsX8l2ML1YrcmPw
+
+### Get user information by username (protected endpoint)
+GET http://localhost:8080/api/users/username/{{username}}
+Authorization: Bearer {{auth_token}}
+
+### Get all users (protected endpoint)
+GET http://localhost:8080/api/users
+Authorization: Bearer {{auth_token}}
+
+### Validate token directly (service-to-service communication example)
+GET http://localhost:8080/api/users/validate-token?token={{auth_token}}
+Authorization: Bearer {{auth_token}}
+
+### Extract user ID from token (service-to-service communication example)
+GET http://localhost:8080/api/users/token/user-id?token={{auth_token}}
+Authorization: Bearer {{auth_token}}
+
+### Try to access a protected endpoint without a token (should fail)
+GET http://localhost:8080/api/users/1
+
+### Try to access a protected endpoint with an invalid token (should fail)
+GET http://localhost:8080/api/users/1
+Authorization: Bearer invalid.token.here

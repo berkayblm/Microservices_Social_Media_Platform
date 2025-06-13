@@ -6,7 +6,29 @@ spring:
     name: api-gateway
   cloud:
     gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:63342"  # Just your frontend origin
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+
       routes:
+        # Add this new route before the user-service route
+        - id: token-validation
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/validateToken
+          # No AuthenticationFilter here
+
         - id: user-service
           uri: lb://user-service
           predicates:
@@ -39,40 +61,14 @@ spring:
                 redis-rate-limiter.burst-capacity: 20
 
         - id: post-service
-          uri: lb://post-service
+          uri: lb://POST-SERVICE
           predicates:
             - Path=/api/posts/**
           filters:
-            - name: AuthenticationFilter
+            - AuthenticationFilter
             - name: CircuitBreaker
               args:
-                name: post-service
-                fallbackUri: forward:/fallback
-            - name: RequestRateLimiter
-              args:
-                redis-rate-limiter.replenish-rate: 15
-                redis-rate-limiter.burst-capacity: 30
-
-        - id: comment-service
-          uri: lb://comment-service
-          predicates:
-            - Path=/api/comments/**
-          filters:
-            - name: AuthenticationFilter
-            - name: CircuitBreaker
-              args:
-                name: comment-service
-                fallbackUri: forward:/fallback
-
-        - id: like-service
-          uri: lb://like-service
-          predicates:
-            - Path=/api/likes/**
-          filters:
-            - name: AuthenticationFilter
-            - name: CircuitBreaker
-              args:
-                name: like-service
+                name: postCircuitBreaker
                 fallbackUri: forward:/fallback
 
         - id: auth-service
@@ -94,8 +90,6 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka
-  instance:
-    prefer-ip-address: true
 
 resilience4j:
   circuitbreaker:
@@ -133,3 +127,10 @@ spring:
       password: 123456
       host: localhost
       port: 6379
+
+logging:
+  level:
+    org.springframework.security.web: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+
+

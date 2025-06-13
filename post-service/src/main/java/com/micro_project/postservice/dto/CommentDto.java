@@ -17,5 +17,6 @@ public class CommentDto {
     private String username;
     private Long userId;
     private LocalDateTime createdAt;
+    private Boolean isAuthor;
 }
 

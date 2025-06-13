@@ -1,0 +1,177 @@
+/* General Styles */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+}
+
+.navbar-brand {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* Cards */
+.card {
+  border-radius: 0.5rem;
+  border: none;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card.shadow-sm:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.card-header {
+  border-top-left-radius: 0.5rem !important;
+  border-top-right-radius: 0.5rem !important;
+}
+
+/* Posts */
+.post-card {
+  margin-bottom: 1.5rem;
+}
+
+.post-title {
+  font-weight: 600;
+}
+
+.post-date {
+  font-size: 0.8rem;
+}
+
+.post-content {
+  white-space: pre-line;
+}
+
+.post-image {
+  max-height: 500px;
+  object-fit: contain;
+  width: 100%;
+}
+
+/* Comments */
+.comment-item {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background-color: #f8f9fa;
+  margin-bottom: 0.75rem;
+}
+
+.comment-username {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.comment-date {
+  font-size: 0.75rem;
+}
+
+.comment-content {
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+/* Auth Forms */
+.form-floating label {
+  color: #6c757d;
+}
+
+.form-control:focus {
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Buttons */
+.btn {
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+}
+
+.btn-primary {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.btn-primary:hover {
+  background-color: #0b5ed7;
+  border-color: #0a58ca;
+}
+
+.btn-outline-primary {
+  color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.btn-outline-primary:hover {
+  background-color: #0d6efd;
+  color: white;
+}
+
+/* Profile */
+.profile-header {
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.profile-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid white;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.profile-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #dee2e6;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0d6efd;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .profile-header {
+    text-align: center;
+  }
+
+  .profile-avatar {
+    margin-bottom: 1rem;
+  }
+
+  .profile-stats {
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    width: 50%;
+    margin-bottom: 1rem;
+  }
+}

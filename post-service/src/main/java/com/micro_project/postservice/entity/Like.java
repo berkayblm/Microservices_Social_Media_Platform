@@ -26,9 +26,6 @@ public class Like {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(nullable = false)
-    private String username;
-
     @Column(name = "reaction_type", nullable = false)
     private String reactionType = "LIKE"; // Default reaction type
 

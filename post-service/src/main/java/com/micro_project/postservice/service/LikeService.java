@@ -1,12 +1,11 @@
 package com.micro_project.postservice.service;
 
-import com.micro_project.postservice.config.JwtUserDetails;
+import com.micro_project.postservice.dto.LikeResponse;
 import com.micro_project.postservice.entity.Like;
 import com.micro_project.postservice.entity.Post;
 import com.micro_project.postservice.repository.LikeRepository;
 import com.micro_project.postservice.repository.PostRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,38 +24,40 @@ public class LikeService {
     }
 
     @Transactional
-    public boolean toggleLike(Long postId, String reactionType) {
-        JwtUserDetails userDetails = getCurrentUser();
-
+    public LikeResponse toggleLike(Long postId, Long userId, String reactionType) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
 
-        Optional<Like> existingLike = likeRepository.findByPostIdAndUserId(postId, userDetails.getUserId());
+        Optional<Like> existingLike = likeRepository.findByPostIdAndUserId(postId, userId);
+        boolean isLiked;
 
         if (existingLike.isPresent()) {
             // If like exists and reaction type is the same, remove the like
             if (existingLike.get().getReactionType().equals(reactionType)) {
                 likeRepository.delete(existingLike.get());
-                return false; // Indicates like was removed
+                isLiked = false; // Indicates like was removed
             } else {
                 // Update reaction type
                 Like like = existingLike.get();
                 like.setReactionType(reactionType);
                 likeRepository.save(like);
-                return true; // Indicates like was updated
+                isLiked = true; // Indicates like was updated
             }
         } else {
             // Create new like
             Like like = new Like();
             like.setPost(post);
-            like.setUserId(userDetails.getUserId());
-            like.setUsername(userDetails.getUsername());
+            like.setUserId(userId);
             like.setReactionType(reactionType);
 
             likeRepository.save(like);
-            return true; // Indicates like was added
+            isLiked = true;
         }
+
+        int likeCount = likeRepository.countByPostId(postId);
+        return new LikeResponse(isLiked, likeCount);
     }
+
 
     public int getLikeCount(Long postId) {
         return likeRepository.countByPostId(postId);
@@ -66,7 +67,4 @@ public class LikeService {
         return likeRepository.existsByPostIdAndUserId(postId, userId);
     }
 
-    private JwtUserDetails getCurrentUser() {
-        return (JwtUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-    }
 }
