@@ -179,8 +179,11 @@ const FeedController = {
     postElement.innerHTML = `
        <div class="card-body">
          <div class="d-flex align-items-center mb-2">
-           <img src="${post.author.profileImageUrl || '/assets/images/default-avatar.png'}"
-                class="rounded-circle me-2" width="40" height="40" alt="${post.author.username}">
+           ${post.author.profileImageUrl ?
+               `<img src="${post.author.profileImageUrl}"
+                     class="rounded-circle me-2" width="40" height="40" alt="${post.author.username}">` :
+               `<div class="default-avatar me-2">${post.author.username.charAt(0).toUpperCase()}</div>`
+           }
            <div>
              <h6 class="mb-0">${post.author.displayName || post.author.username}</h6>
              <small class="text-muted">@${post.author.username} · ${new Date(post.createdAt).toLocaleString()}</small>

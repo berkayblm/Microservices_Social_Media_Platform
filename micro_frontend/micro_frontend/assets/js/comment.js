@@ -296,3 +296,160 @@ document.addEventListener('DOMContentLoaded', () => {
     PostController.loadPostDetails(postId);
   }
 });
+
+// Comment Service for handling comment operations
+class CommentService {
+    constructor() {
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        // Handle comment form submissions
+        document.addEventListener('submit', (e) => {
+            if (e.target.classList.contains('add-comment-form')) {
+                e.preventDefault();
+                this.handleAddComment(e);
+            }
+        });
+
+        // Handle comment edit/delete buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.edit-comment-btn')) {
+                e.preventDefault();
+                const commentItem = e.target.closest('.comment-item');
+                const commentId = commentItem.dataset.commentId;
+                this.handleEditComment(commentId, commentItem);
+            } else if (e.target.closest('.delete-comment-btn')) {
+                e.preventDefault();
+                const commentItem = e.target.closest('.comment-item');
+                const commentId = commentItem.dataset.commentId;
+                this.handleDeleteComment(commentId, commentItem);
+            }
+        });
+    }
+
+    async handleAddComment(e) {
+        const form = e.target;
+        const postId = form.closest('[data-post-id]').dataset.postId;
+        const input = form.querySelector('.comment-input');
+        const content = input.value.trim();
+
+        if (!content) return;
+
+        try {
+            const comment = await API.comments.create(postId, { content });
+            const container = form.closest('.comments-section').querySelector('.comments-container');
+            const commentElement = this.createCommentElement(comment);
+            container.appendChild(commentElement);
+            input.value = '';
+
+            // Update comment count
+            const commentCount = form.closest('[data-post-id]').querySelector('.comment-count');
+            commentCount.textContent = parseInt(commentCount.textContent) + 1;
+        } catch (error) {
+            console.error('Error adding comment:', error);
+            this.showError('Failed to add comment. Please try again.');
+        }
+    }
+
+    createCommentElement(comment) {
+        const template = document.getElementById('commentTemplate');
+        const clone = template.content.cloneNode(true);
+
+        const commentItem = clone.querySelector('.comment-item');
+        commentItem.dataset.commentId = comment.id;
+
+        clone.querySelector('.comment-username').textContent = comment.author.username;
+        clone.querySelector('.comment-date').textContent = dayjs(comment.createdAt).fromNow();
+        clone.querySelector('.comment-content').textContent = comment.content;
+
+        // Set up edit/delete actions for comment author
+        const commentActions = clone.querySelector('.comment-actions');
+        if (comment.author.id === authService.getCurrentUser().id) {
+            const editBtn = clone.querySelector('.edit-comment-btn');
+            const deleteBtn = clone.querySelector('.delete-comment-btn');
+
+            editBtn.addEventListener('click', () => this.handleEditComment(comment.id, commentItem));
+            deleteBtn.addEventListener('click', () => this.handleDeleteComment(comment.id, commentItem));
+        } else {
+            commentActions.remove();
+        }
+
+        return clone;
+    }
+
+    async handleEditComment(commentId, commentItem) {
+        const contentElement = commentItem.querySelector('.comment-content');
+        const currentContent = contentElement.textContent;
+
+        // Create edit form
+        const form = document.createElement('form');
+        form.classList.add('edit-comment-form');
+        form.innerHTML = `
+            <div class="input-group">
+                <input type="text" class="form-control" value="${currentContent}">
+                <button class="btn btn-primary" type="submit">Save</button>
+                <button class="btn btn-secondary" type="button">Cancel</button>
+            </div>
+        `;
+
+        // Replace content with form
+        contentElement.replaceWith(form);
+
+        // Handle form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newContent = form.querySelector('input').value.trim();
+
+            if (!newContent) return;
+
+            try {
+                const postId = commentItem.closest('[data-post-id]').dataset.postId;
+                const comment = await API.comments.update(postId, commentId, { content: newContent });
+                
+                // Replace form with updated content
+                const newContentElement = document.createElement('p');
+                newContentElement.classList.add('mb-0', 'comment-content');
+                newContentElement.textContent = comment.content;
+                form.replaceWith(newContentElement);
+            } catch (error) {
+                console.error('Error updating comment:', error);
+                this.showError('Failed to update comment. Please try again.');
+            }
+        });
+
+        // Handle cancel button
+        form.querySelector('.btn-secondary').addEventListener('click', () => {
+            const newContentElement = document.createElement('p');
+            newContentElement.classList.add('mb-0', 'comment-content');
+            newContentElement.textContent = currentContent;
+            form.replaceWith(newContentElement);
+        });
+    }
+
+    async handleDeleteComment(commentId, commentItem) {
+        if (!confirm('Are you sure you want to delete this comment?')) return;
+
+        try {
+            const postId = commentItem.closest('[data-post-id]').dataset.postId;
+            await API.comments.delete(postId, commentId);
+            commentItem.remove();
+
+            // Update comment count
+            const commentCount = commentItem.closest('[data-post-id]').querySelector('.comment-count');
+            commentCount.textContent = parseInt(commentCount.textContent) - 1;
+        } catch (error) {
+            console.error('Error deleting comment:', error);
+            this.showError('Failed to delete comment. Please try again.');
+        }
+    }
+
+    showError(message) {
+        // Implement error display functionality
+        // This could show a toast notification or alert
+        alert(message);
+    }
+}
+
+// Initialize comment service
+const commentService = new CommentService();
