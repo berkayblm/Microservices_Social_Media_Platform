@@ -9,7 +9,10 @@ spring:
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOrigins: "http://localhost:63342"  # Just your frontend origin
+            allowedOrigins:
+              - "http://localhost:63342"  # Add your specific origin
+              - "http://localhost:*"
+              - "http://127.0.0.1:*"
             allowedMethods:
               - GET
               - POST
@@ -20,6 +23,7 @@ spring:
             allowedHeaders: "*"
             allowCredentials: true
             maxAge: 3600
+
 
       routes:
         # Add this new route before the user-service route

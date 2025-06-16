@@ -1,6 +1,8 @@
 package com.micro_project.postservice.service;
 
+import com.micro_project.postservice.client.UserClient;
 import com.micro_project.postservice.dto.CommentDto;
+import com.micro_project.postservice.dto.UserDto;
 import com.micro_project.postservice.entity.Comment;
 import com.micro_project.postservice.entity.Post;
 import com.micro_project.postservice.repository.CommentRepository;
@@ -10,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,11 +21,13 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
+    private final UserClient userClient;
 
     @Autowired
-    public CommentService(CommentRepository commentRepository, PostRepository postRepository) {
+    public CommentService(CommentRepository commentRepository, PostRepository postRepository, UserClient userClient) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
+        this.userClient = userClient;
     }
 
     public Page<CommentDto> getCommentsByPostId(Long postId, Long loggedInUserId, int page, int size) {
@@ -86,6 +91,18 @@ public class CommentService {
 
         // Check if the logged-in user is the author of this comment
         dto.setIsAuthor(loggedInUserId != null && loggedInUserId.equals(comment.getUserId()));
+
+        try {
+            ResponseEntity<UserDto> userResponse = userClient.getUserById(comment.getUserId());
+            if (userResponse.getStatusCode().is2xxSuccessful() && userResponse.getBody() != null) {
+                dto.setUsername(String.valueOf(userResponse.getBody().getUsername(
+
+                )));
+            }
+        } catch (Exception e) {
+            // Log error but continue - we don't want post retrieval to fail just because user info is missing
+            System.err.println("Error fetching author info for post " + comment.getId() + ": " + e.getMessage());
+        }
 
         return dto;
     }

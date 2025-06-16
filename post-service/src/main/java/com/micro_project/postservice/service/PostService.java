@@ -128,7 +128,7 @@ public class PostService {
             hasLiked = likeRepository.existsByPostIdAndUserId(post.getId(), currentUserId);
         }
         postDto.setLikedByCurrentUser(hasLiked);
-// Fetch and set author information
+        // Fetch and set author information
         try {
             ResponseEntity<UserDto> userResponse = userClient.getUserById(post.getUserId());
             if (userResponse.getStatusCode().is2xxSuccessful() && userResponse.getBody() != null) {
