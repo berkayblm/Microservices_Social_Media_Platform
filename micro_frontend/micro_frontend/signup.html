@@ -21,7 +21,7 @@
             <h4>Create an Account</h4>
             <p class="text-muted">Join our community today!</p>
           </div>
-          <form id="registerForm">
+          <div id="registerForm">
             <div class="alert alert-danger d-none" id="registerErrorAlert"></div>
 
             <div class="row mb-3">
@@ -65,12 +65,12 @@
             </div>
 
             <div class="d-grid">
-              <button type="submit" class="btn btn-primary btn-lg" id="registerButton">
+              <button type="button" class="btn btn-primary btn-lg" id="registerButton">
                 <span id="registerSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                 <span id="registerText">Create Account</span>
               </button>
             </div>
-          </form>
+          </div>
         </div>
         <div class="card-footer text-center py-3">
           <div class="small">
@@ -85,5 +85,64 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="assets/js/api.js"></script>
 <script src="assets/js/auth.js"></script>
+<script>
+  document.getElementById('registerButton').addEventListener('click', async function() {
+    const firstName = document.getElementById('firstName').value;
+    const lastName = document.getElementById('lastName').value;
+    const username = document.getElementById('username').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const registerButton = document.getElementById('registerButton');
+    const registerSpinner = document.getElementById('registerSpinner');
+    const registerText = document.getElementById('registerText');
+    const errorAlert = document.getElementById('registerErrorAlert');
+
+    // Validate inputs
+    if (!firstName || !lastName || !username || !email || !password || !confirmPassword) {
+      errorAlert.textContent = 'Please fill in all fields';
+      errorAlert.classList.remove('d-none');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      errorAlert.textContent = 'Passwords do not match';
+      errorAlert.classList.remove('d-none');
+      return;
+    }
+
+    try {
+      // Show loading state
+      registerButton.disabled = true;
+      registerSpinner.classList.remove('d-none');
+      registerText.textContent = 'Creating Account...';
+      errorAlert.classList.add('d-none');
+
+      // Attempt registration
+      const success = await AuthService.register({
+        firstName,
+        lastName,
+        username,
+        email,
+        password
+      });
+
+      if (success) {
+        window.location.href = 'feed.html';
+      } else {
+        throw new Error('Registration failed');
+      }
+    } catch (error) {
+      // Show error message
+      errorAlert.textContent = error.message || 'Registration failed. Please try again.';
+      errorAlert.classList.remove('d-none');
+
+      // Reset button state
+      registerButton.disabled = false;
+      registerSpinner.classList.add('d-none');
+      registerText.textContent = 'Create Account';
+    }
+  });
+</script>
 </body>
 </html>
