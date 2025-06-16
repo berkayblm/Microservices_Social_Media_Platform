@@ -21,7 +21,7 @@ public class AuthController {
             AuthResponseDto response = userService.registerUser(registrationDto);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(new AuthResponseDto(null, null, e.getMessage()));
+            return ResponseEntity.badRequest().body(new AuthResponseDto(null, null, null));
         }
     }
 
@@ -31,7 +31,7 @@ public class AuthController {
             AuthResponseDto response = userService.loginUser(loginDto);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(new AuthResponseDto(null, null, e.getMessage()));
+            return ResponseEntity.badRequest().body(new AuthResponseDto(null, null, null));
         }
     }
 }

@@ -43,7 +43,7 @@ public class UserService {
         // Use the user ID in the token
         String token = jwtUtil.generateToken(savedUser.getId(), savedUser.getUsername());
 
-        return new AuthResponseDto(token, savedUser.getUsername(), savedUser.getEmail());
+        return new AuthResponseDto(token, savedUser.getUsername(), savedUser.getId());
 
     }
 
@@ -62,7 +62,7 @@ public class UserService {
 
         // Use the user ID in the token
         String token = jwtUtil.generateToken(user.getId(), user.getUsername());
-        return new AuthResponseDto(token, user.getUsername(), user.getEmail());
+        return new AuthResponseDto(token, user.getUsername(), user.getId());
 
     }
 

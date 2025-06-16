@@ -26,17 +26,16 @@ spring:
 
 
       routes:
-        # Add this new route before the user-service route
-        - id: token-validation
+        - id: auth-public-endpoints
           uri: lb://user-service
           predicates:
-            - Path=/api/users/validateToken
+            - Path=/api/auth/register, /api/auth/login
           # No AuthenticationFilter here
 
         - id: user-service
           uri: lb://user-service
           predicates:
-            - Path=/api/users/**
+            - Path=/api/auth/current-user, /api/users/**
           filters:
             - name: AuthenticationFilter
             - name: CircuitBreaker
@@ -52,7 +51,7 @@ spring:
         - id: profile-service
           uri: lb://profile-service
           predicates:
-            - Path=/api/profiles/**
+            - Path=/profiles/**
           filters:
             - name: AuthenticationFilter
             - name: CircuitBreaker
@@ -74,14 +73,6 @@ spring:
               args:
                 name: postCircuitBreaker
                 fallbackUri: forward:/fallback
-
-        - id: auth-service
-          uri: lb://user-service
-          predicates:
-            - Path=/api/auth/**
-          filters:
-            - name: AuthenticationFilter
-
 
   data:
     redis:
@@ -136,5 +127,6 @@ logging:
   level:
     org.springframework.security.web: DEBUG
     org.springframework.cloud.gateway: DEBUG
+
 
 

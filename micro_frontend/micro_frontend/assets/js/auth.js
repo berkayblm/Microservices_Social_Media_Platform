@@ -17,7 +17,7 @@ const AuthService = {
   setAuth: (data) => {
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify({
-      id: data.userId,
+      id: data.id,
       username: data.username
     }));
   },

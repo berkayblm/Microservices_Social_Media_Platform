@@ -185,7 +185,11 @@ const FeedController = {
                `<div class="default-avatar me-2">${post.author.username.charAt(0).toUpperCase()}</div>`
            }
            <div>
-             <h6 class="mb-0">${post.author.displayName || post.author.username}</h6>
+             <h6 class="mb-0">
+               <a href="./profile.html?userId=${post.author.id}" class="text-decoration-none text-dark">
+                 ${post.author.displayName || post.author.username}
+               </a>
+             </h6>
              <small class="text-muted">@${post.author.username} · ${new Date(post.createdAt).toLocaleString()}</small>
            </div>
          </div>

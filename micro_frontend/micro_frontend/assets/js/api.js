@@ -32,6 +32,12 @@ const API = {
     BY_USERNAME: (username) => `/api/users/username/${username}`
   },
 
+  // Profiles endpoints (newly added)
+  PROFILES: {
+    BY_ID: (userId) => `/api/profiles/${userId}`,
+    BY_USERNAME: (username) => `/api/profiles/username/${username}`
+  },
+
   // Headers utility function
   getHeaders: () => {
     const token = localStorage.getItem('token');
@@ -144,5 +150,14 @@ const API = {
 
     getByUsername: (username) =>
       API.request(API.USERS.BY_USERNAME(username))
+  },
+
+  // Profiles methods (newly added)
+  profiles: {
+    getByUserId: (userId) =>
+      API.request(API.PROFILES.BY_ID(userId)),
+
+    getByUsername: (username) =>
+      API.request(API.PROFILES.BY_USERNAME(username))
   }
 };
