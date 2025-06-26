@@ -154,10 +154,58 @@ const API = {
 
   // Profiles methods (newly added)
   profiles: {
-    getByUserId: (userId) =>
-      API.request(API.PROFILES.BY_ID(userId)),
-
-    getByUsername: (username) =>
-      API.request(API.PROFILES.BY_USERNAME(username))
+    getCurrentUserProfile: async () => {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API.BASE_URL}/api/profiles/me`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      const text = await res.text();
+      console.log('Raw /api/profiles/me response:', text);
+      if (!res.ok) throw new Error('Failed to fetch current user profile');
+      return JSON.parse(text);
+    },
+    updateCurrentUserProfile: async (profileData) => {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API.BASE_URL}/api/profiles/me`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(profileData)
+      });
+      if (!res.ok) throw new Error('Failed to update current user profile');
+      return await res.json();
+    },
+    deleteCurrentUserProfile: async () => {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API.BASE_URL}/api/profiles/me`, {
+        method: 'DELETE',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (!res.ok) throw new Error('Failed to delete current user profile');
+      return true;
+    },
+    getByUserId: async (userId) => {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API.BASE_URL}${API.PROFILES.BY_ID(userId)}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (!res.ok) throw new Error('Failed to fetch profile');
+      return await res.json();
+    },
+    update: async (userId, profileData) => {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API.BASE_URL}${API.PROFILES.BY_ID(userId)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(profileData)
+      });
+      if (!res.ok) throw new Error('Failed to update profile');
+      return await res.json();
+    }
   }
 };

@@ -10,9 +10,9 @@ spring:
         cors-configurations:
           '[/**]':
             allowedOrigins:
-              - "http://localhost:63342"  # Add your specific origin
-              - "http://localhost:*"
-              - "http://127.0.0.1:*"
+              - "http://localhost:5500"
+              - "http://127.0.0.1:5500"
+              - "http://localhost:63342"
             allowedMethods:
               - GET
               - POST
@@ -24,18 +24,23 @@ spring:
             allowCredentials: true
             maxAge: 3600
 
-
       routes:
         - id: auth-public-endpoints
           uri: lb://user-service
           predicates:
-            - Path=/api/auth/register, /api/auth/login
+            - Path=/api/auth/register, /api/auth/login, /api/auth/current-user
+          # No AuthenticationFilter here
+
+        - id: token-validation
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/validateToken
           # No AuthenticationFilter here
 
         - id: user-service
           uri: lb://user-service
           predicates:
-            - Path=/api/auth/current-user, /api/users/**
+            - Path=/api/users/**
           filters:
             - name: AuthenticationFilter
             - name: CircuitBreaker
@@ -51,17 +56,14 @@ spring:
         - id: profile-service
           uri: lb://profile-service
           predicates:
-            - Path=/profiles/**
+            - Path=/api/profiles/**
           filters:
             - name: AuthenticationFilter
             - name: CircuitBreaker
               args:
                 name: profile-service
                 fallbackUri: forward:/fallback
-            - name: RequestRateLimiter
-              args:
-                redis-rate-limiter.replenish-rate: 10
-                redis-rate-limiter.burst-capacity: 20
+
 
         - id: post-service
           uri: lb://POST-SERVICE
@@ -73,6 +75,18 @@ spring:
               args:
                 name: postCircuitBreaker
                 fallbackUri: forward:/fallback
+
+        - id: followers-service
+          uri: lb://followers-service
+          predicates:
+            - Path=/api/follows/**
+          filters:
+            - name: AuthenticationFilter
+            - name: CircuitBreaker
+              args:
+                name: followers-service
+                fallbackUri: forward:/fallback
+
 
   data:
     redis:
@@ -104,6 +118,12 @@ resilience4j:
         minimum-number-of-calls: 5
         failure-rate-threshold: 50
         wait-duration-in-open-state: 10s
+      followers-service:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+
 
 jwt:
   secret: 5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437

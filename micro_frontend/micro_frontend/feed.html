@@ -43,61 +43,81 @@
   </div>
 </nav>
 
-<!-- Main Content -->
+<!-- Feed Tabs -->
 <div class="container py-4">
-  <div class="row">
-    <!-- Feed Column -->
-    <div class="col-lg-8">
-      <div id="postsFeed" class="mb-4">
-        <!-- Posts will be loaded here -->
-        <div class="text-center py-5" id="postsLoader">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+  <ul class="nav nav-tabs mb-3" id="feedTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#allFeed" type="button" role="tab" aria-controls="allFeed" aria-selected="true">All Posts</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="following-tab" data-bs-toggle="tab" data-bs-target="#followingFeed" type="button" role="tab" aria-controls="followingFeed" aria-selected="false">Following</button>
+    </li>
+  </ul>
+  <div class="tab-content" id="feedTabsContent">
+    <div class="tab-pane fade show active" id="allFeed" role="tabpanel" aria-labelledby="all-tab">
+      <div class="row">
+        <div class="col-lg-8">
+          <div id="postsFeed" class="mb-4"></div>
+          <div class="text-center py-5" id="postsLoader">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading posts...</p>
           </div>
-          <p class="mt-2">Loading posts...</p>
+          <div class="text-center mb-4 d-none" id="loadMoreContainer">
+            <button class="btn btn-outline-primary" id="loadMoreBtn">
+              <span id="loadMoreSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+              <span id="loadMoreText">Load More</span>
+            </button>
+          </div>
         </div>
-      </div>
-
-      <!-- Load More Button -->
-      <div class="text-center mb-4 d-none" id="loadMoreContainer">
-        <button class="btn btn-outline-primary" id="loadMoreBtn">
-          <span id="loadMoreSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-          <span id="loadMoreText">Load More</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Sidebar -->
-    <div class="col-lg-4">
-      <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white">
-          <h5 class="mb-0">Your Profile</h5>
-        </div>
-        <div class="card-body">
-          <div class="d-flex align-items-center mb-3">
-            <div class="default-avatar me-3" style="width: 64px; height: 64px; font-size: 2rem;">U</div>
-            <div>
-              <h5 class="mb-0" id="sidebarUsername">Username</h5>
-              <p class="text-muted mb-0" id="sidebarFullName">Full Name</p>
+        <div class="col-lg-4">
+          <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+              <h5 class="mb-0">Your Profile</h5>
+            </div>
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-3">
+                <div class="default-avatar me-3" style="width: 64px; height: 64px; font-size: 2rem;">U</div>
+                <div>
+                  <h5 class="mb-0" id="sidebarUsername">Username</h5>
+                  <p class="text-muted mb-0" id="sidebarFullName">Full Name</p>
+                </div>
+              </div>
+              <div class="d-grid">
+                <a href="profile.html" class="btn btn-outline-primary" id="viewProfileBtn">View Profile</a>
+              </div>
             </div>
           </div>
-          <div class="d-grid">
-            <a href="profile.html" class="btn btn-outline-primary">View Profile</a>
+          <div class="card shadow-sm">
+            <div class="card-header bg-white">
+              <h5 class="mb-0">About SocialApp</h5>
+            </div>
+            <div class="card-body">
+              <p>A modern social media platform for connecting with friends and sharing your moments.</p>
+              <ul class="list-unstyled mb-0">
+                <li><a href="#" class="text-decoration-none">Terms of Service</a></li>
+                <li><a href="#" class="text-decoration-none">Privacy Policy</a></li>
+                <li><a href="#" class="text-decoration-none">Help Center</a></li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
-
-      <div class="card shadow-sm">
-        <div class="card-header bg-white">
-          <h5 class="mb-0">About SocialApp</h5>
+    </div>
+    <div class="tab-pane fade" id="followingFeed" role="tabpanel" aria-labelledby="following-tab">
+      <div class="row">
+        <div class="col-lg-8">
+          <div id="followingPostsFeed" class="mb-4"></div>
+          <div class="text-center py-5 d-none" id="followingPostsLoader">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading posts...</p>
+          </div>
         </div>
-        <div class="card-body">
-          <p>A modern social media platform for connecting with friends and sharing your moments.</p>
-          <ul class="list-unstyled mb-0">
-            <li><a href="#" class="text-decoration-none">Terms of Service</a></li>
-            <li><a href="#" class="text-decoration-none">Privacy Policy</a></li>
-            <li><a href="#" class="text-decoration-none">Help Center</a></li>
-          </ul>
+        <div class="col-lg-4">
+          <!-- Sidebar (unchanged, can be left empty or duplicated) -->
         </div>
       </div>
     </div>
@@ -123,8 +143,12 @@
             <textarea class="form-control" id="postContent" rows="4" required></textarea>
           </div>
           <div class="mb-3">
-            <label for="postImageUrl" class="form-label">Image URL (optional)</label>
-            <input type="url" class="form-control" id="postImageUrl">
+            <label for="postImage" class="form-label">Media (optional)</label>
+            <input type="file" class="form-control" id="postImage" accept="image/*">
+            <div class="form-text">Supported formats: JPG, PNG, GIF</div>
+            <div id="imagePreview" class="mt-2 d-none">
+              <img src="" alt="Preview" class="img-fluid rounded" style="max-height: 200px;">
+            </div>
           </div>
         </form>
       </div>
