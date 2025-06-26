@@ -61,12 +61,13 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                         .doOnNext(userDto -> log.debug("UserDto received: id={}, username={}",
                                 userDto.getId(), userDto.getUsername()))
                         .map(userDto -> {
-                            exchange.getRequest()
-                                    .mutate()
-                                    .header("Authorization", request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION)) // Forward Authorization header
-                                    .header("loggedInUser", String.valueOf(userDto.getUsername()))
-                                    .header("userId", String.valueOf(userDto.getId()));
-                            return exchange;
+                            ServerHttpRequest mutatedRequest = exchange.getRequest()
+                                .mutate()
+                                .header("Authorization", request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION))
+                                .header("loggedInUser", String.valueOf(userDto.getUsername()))
+                                .header("userId", String.valueOf(userDto.getId()))
+                                .build();
+                            return exchange.mutate().request(mutatedRequest).build();
                         })
                         .flatMap(chain::filter);
             }

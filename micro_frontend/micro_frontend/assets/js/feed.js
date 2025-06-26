@@ -15,6 +15,11 @@ const FeedController = {
     FeedController.currentUserId = currentUser ? currentUser.id : null;
     console.log('Current user retrieved:', FeedController.currentUserId);
 
+    // Update View Profile link with user ID
+    const viewProfileBtn = document.getElementById('viewProfileBtn');
+    if (viewProfileBtn && FeedController.currentUserId) {
+      viewProfileBtn.href = `profile.html?userId=${FeedController.currentUserId}`;
+    }
 
     // Alternative method: Get from a data attribute in your HTML
     const postsFeed = document.getElementById('postsFeed');
@@ -45,6 +50,12 @@ const FeedController = {
 
     // Set up infinite scroll
     window.addEventListener('scroll', FeedController.handleScroll);
+
+    // Set up image preview
+    const postImage = document.getElementById('postImage');
+    if (postImage) {
+      postImage.addEventListener('change', FeedController.handleImagePreview);
+    }
   },
 
   // Handle scroll for infinite loading
@@ -160,9 +171,7 @@ const FeedController = {
     } finally {
       FeedController.isLoading = false;
     }
-  }
-
-  ,
+  },
 
   // Load more posts
   loadMorePosts: async () => {
@@ -185,7 +194,11 @@ const FeedController = {
                `<div class="default-avatar me-2">${post.author.username.charAt(0).toUpperCase()}</div>`
            }
            <div>
-             <h6 class="mb-0">${post.author.displayName || post.author.username}</h6>
+             <h6 class="mb-0">
+               <a href="./profile.html?userId=${post.author.id}" class="text-decoration-none text-dark">
+                 ${post.author.displayName || post.author.username}
+               </a>
+             </h6>
              <small class="text-muted">@${post.author.username} · ${new Date(post.createdAt).toLocaleString()}</small>
            </div>
          </div>
@@ -243,16 +256,33 @@ const FeedController = {
     });
 
     return postElement;
-  }
-  ,
+  },
+
+  // Handle image preview
+  handleImagePreview: (event) => {
+    const file = event.target.files[0];
+    const preview = document.getElementById('imagePreview');
+    const previewImg = preview.querySelector('img');
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        previewImg.src = e.target.result;
+        preview.classList.remove('d-none');
+      };
+      reader.readAsDataURL(file);
+    } else {
+      preview.classList.add('d-none');
+      previewImg.src = '';
+    }
+  },
 
   // Create new post
   createPost: async (event) => {
     event.preventDefault();
 
     const contentInput = document.getElementById('postContent');
-    const titleInput = document.getElementById('postTitle'); // Use the correct ID
-
+    const titleInput = document.getElementById('postTitle');
     const imageInput = document.getElementById('postImage');
     const submitBtn = document.getElementById('submitPostBtn');
 
@@ -260,29 +290,39 @@ const FeedController = {
       alert('Please enter some content for your post');
       return;
     }
-    // Add validation
-    if (!titleInput) {
+    if (!titleInput || !titleInput.value.trim()) {
       alert('Please enter a post title');
       return;
     }
 
-
     // Disable submit button and show loading state
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Posting...';
+    const spinner = document.getElementById('postSpinner');
+    const text = document.getElementById('postText');
+    spinner.classList.remove('d-none');
+    text.textContent = 'Posting...';
 
     try {
+      let imageUrl = null;
+      if (imageInput && imageInput.files[0]) {
+        imageUrl = await FeedController.uploadImage(imageInput.files[0]);
+      }
+
       const postData = {
         title: titleInput.value.trim(),
         content: contentInput.value.trim(),
-        imageUrl: imageInput && imageInput.files[0] ? await FeedController.uploadImage(imageInput.files[0]) : null
+        imageUrl: imageUrl
       };
 
       const newPost = await API.posts.create(postData);
 
       // Reset form
       contentInput.value = '';
-      if (imageInput) imageInput.value = '';
+      titleInput.value = '';
+      if (imageInput) {
+        imageInput.value = '';
+        document.getElementById('imagePreview').classList.add('d-none');
+      }
 
       // Add new post to the top of the feed
       const postsFeed = document.getElementById('postsFeed');
@@ -304,18 +344,121 @@ const FeedController = {
     } finally {
       // Re-enable submit button
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Post';
+      spinner.classList.add('d-none');
+      text.textContent = 'Post';
     }
   },
 
   // Upload image helper
   uploadImage: async (file) => {
-    // This is a placeholder - implement actual image upload logic
-    // You'll need to set up a server endpoint to handle image uploads
-    console.log('Image upload would happen here', file);
-    return null;
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      const data = await response.json();
+      return data.imageUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      throw new Error('Failed to upload image: ' + error.message);
+    }
+  },
+
+  // Load posts from users the current user is following
+  loadFollowingPosts: async () => {
+    if (FeedController.isLoading) return;
+    FeedController.isLoading = true;
+    FeedController.clearFollowingFeed();
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API.BASE_URL}/api/follows/${FeedController.currentUserId}/following`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (!res.ok) throw new Error('Failed to fetch following list');
+      const following = await res.json();
+      const followingIds = following.map(f => f.following.id);
+
+      if (followingIds.length === 0) {
+        if (followingPostsLoader) followingPostsLoader.classList.add('d-none');
+        followingPostsFeed.innerHTML = '<div class="text-center py-5 text-muted">You are not following anyone yet.</div>';
+        FeedController.isLoading = false;
+        return;
+      }
+
+      // Fetch posts for each following user (could be optimized with a backend endpoint)
+      let allPosts = [];
+      for (const userId of followingIds) {
+        const postsRes = await API.posts.getByUserId(userId, 0, 5); // adjust page/size as needed
+        if (postsRes && postsRes.posts) {
+          allPosts = allPosts.concat(postsRes.posts);
+        }
+      }
+      // Sort posts by date, descending
+      allPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      if (followingPostsLoader) followingPostsLoader.classList.add('d-none');
+      if (allPosts.length === 0) {
+        followingPostsFeed.innerHTML = '<div class="text-center py-5 text-muted">No posts from users you follow yet.</div>';
+      } else {
+        allPosts.forEach(post => {
+          const postElement = FeedController.createPostElement(post);
+          followingPostsFeed.appendChild(postElement);
+        });
+      }
+    } catch (err) {
+      if (followingPostsLoader) followingPostsLoader.classList.add('d-none');
+      followingPostsFeed.innerHTML = '<div class="text-center py-5 text-danger">Failed to load following posts.</div>';
+      console.error('Error loading following posts:', err);
+    } finally {
+      FeedController.isLoading = false;
+    }
+  },
+
+  // Helper to clear following feed
+  clearFollowingFeed: () => {
+    const followingPostsFeed = document.getElementById('followingPostsFeed');
+    const followingPostsLoader = document.getElementById('followingPostsLoader');
+    if (followingPostsFeed) followingPostsFeed.innerHTML = '';
+    if (followingPostsLoader) followingPostsLoader.classList.remove('d-none');
   }
 };
 
 // Initialize feed when DOM is ready
-document.addEventListener('DOMContentLoaded', FeedController.init);
+document.addEventListener('DOMContentLoaded', () => {
+  FeedController.init();
+
+  const allTab = document.getElementById('all-tab');
+  const followingTab = document.getElementById('following-tab');
+  const allFeedPane = document.getElementById('allFeed');
+  const followingFeedPane = document.getElementById('followingFeed');
+  const postsFeed = document.getElementById('postsFeed');
+  const followingPostsFeed = document.getElementById('followingPostsFeed');
+  const postsLoader = document.getElementById('postsLoader');
+  const followingPostsLoader = document.getElementById('followingPostsLoader');
+
+  // Tab switching event listeners
+  if (allTab) {
+    allTab.addEventListener('click', () => {
+      if (allFeedPane) allFeedPane.classList.add('show', 'active');
+      if (followingFeedPane) followingFeedPane.classList.remove('show', 'active');
+      // Optionally reload all posts
+      // FeedController.loadPosts();
+    });
+  }
+  if (followingTab) {
+    followingTab.addEventListener('click', () => {
+      if (allFeedPane) allFeedPane.classList.remove('show', 'active');
+      if (followingFeedPane) followingFeedPane.classList.add('show', 'active');
+      FeedController.loadFollowingPosts();
+    });
+  }
+});
