@@ -29,7 +29,8 @@ const API = {
   // Users endpoints
   USERS: {
     BY_ID: (id) => `/api/users/${id}`,
-    BY_USERNAME: (username) => `/api/users/username/${username}`
+    BY_USERNAME: (username) => `/api/users/username/${username}`,
+    ALL: '/api/users'
   },
 
   // Profiles endpoints (newly added)
@@ -149,7 +150,59 @@ const API = {
       API.request(API.USERS.BY_ID(id)),
 
     getByUsername: (username) =>
-      API.request(API.USERS.BY_USERNAME(username))
+      API.request(API.USERS.BY_USERNAME(username)),
+
+    getAll: async () => {
+      // Public endpoint - no authentication required
+      const url = API.BASE_URL + API.USERS.ALL;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+      
+      return await response.json();
+    },
+
+    getRandomUsers: async (limit = 8) => {
+      // Public endpoint - no authentication required
+      const url = `${API.BASE_URL}/api/users/random?limit=${limit}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+      
+      return await response.json();
+    },
+
+    getRandomUsersExcludingIds: async (excludeIds, limit = 8) => {
+      // Public endpoint - no authentication required
+      const url = `${API.BASE_URL}/api/users/random/exclude?limit=${limit}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(excludeIds)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+      
+      return await response.json();
+    }
   },
 
   // Profiles methods (newly added)

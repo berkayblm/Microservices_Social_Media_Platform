@@ -22,6 +22,9 @@
           <a class="nav-link active" href="feed.html"><i class="fas fa-home"></i> Home</a>
         </li>
         <li class="nav-item">
+          <a class="nav-link" href="chat.html"><i class="fas fa-comments"></i> Messages</a>
+        </li>
+        <li class="nav-item">
           <a class="nav-link" href="profile.html"><i class="fas fa-user"></i> Profile</a>
         </li>
       </ul>
@@ -89,6 +92,33 @@
               </div>
             </div>
           </div>
+
+          <!-- Recommended Users Section -->
+          <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">Suggested for you</h5>
+              <div class="btn-group" role="group">
+                <button class="btn btn-sm btn-outline-secondary" id="randomizeRecommendedBtn" title="Get new random users">
+                  <i class="fas fa-random"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-primary" id="refreshRecommendedBtn" title="Refresh suggestions">
+                  <i class="fas fa-sync-alt"></i>
+                </button>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div id="recommendedUsersList">
+                <!-- Recommended users will be loaded here -->
+                <div class="text-center p-3">
+                  <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                  <small class="text-muted ms-2">Loading suggestions...</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="card shadow-sm">
             <div class="card-header bg-white">
               <h5 class="mb-0">About SocialApp</h5>
