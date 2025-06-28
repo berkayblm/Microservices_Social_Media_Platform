@@ -1,5 +1,7 @@
 package com.micro_project.messagingservice.postservice.controller;
 
+import com.micro_project.messagingservice.postservice.client.FileUploadClient;
+import com.micro_project.messagingservice.postservice.dto.ImageUploadResponseDto;
 import com.micro_project.messagingservice.postservice.dto.PagedPostResponse;
 import com.micro_project.messagingservice.postservice.dto.PostCreateRequest;
 import com.micro_project.messagingservice.postservice.dto.PostDto;
@@ -10,16 +12,19 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/posts")
 public class PostController {
 
     private final PostService postService;
+    private final FileUploadClient fileUploadClient;
 
     @Autowired
-    public PostController(PostService postService) {
+    public PostController(PostService postService, FileUploadClient fileUploadClient) {
         this.postService = postService;
+        this.fileUploadClient = fileUploadClient;
     }
 
     @GetMapping
@@ -81,15 +86,28 @@ public class PostController {
 
     @PostMapping
     public ResponseEntity<PostDto> createPost(
-            @RequestBody PostCreateRequest request,
+            @RequestParam("title") String title,
+            @RequestParam("content") String content,
+            @RequestParam(value = "file", required = false) MultipartFile file,
             @RequestHeader(value = "userId") Long userId,
             @RequestHeader(value = "loggedInUser") String username) {
 
-        PostDto createdPost = postService.createPost(
-                request.getTitle(),
-                request.getContent(),
-                userId
-        );
+        String imageUrl = null;
+        
+        // Upload image if provided
+        if (file != null && !file.isEmpty()) {
+            try {
+                ResponseEntity<ImageUploadResponseDto> uploadResponse = fileUploadClient.uploadImage(file);
+                if (uploadResponse.getStatusCode().is2xxSuccessful() && uploadResponse.getBody() != null) {
+                    imageUrl = uploadResponse.getBody().getImageUrl();
+                }
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(null);
+            }
+        }
+
+        PostDto createdPost = postService.createPost(title, content, userId, imageUrl);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdPost);
     }
 
@@ -97,22 +115,33 @@ public class PostController {
     @PutMapping("/{id}")
     public ResponseEntity<PostDto> updatePost(
             @PathVariable Long id,
-            @RequestBody PostUpdateRequest request,
+            @RequestParam("title") String title,
+            @RequestParam("content") String content,
+            @RequestParam(value = "file", required = false) MultipartFile file,
             @RequestHeader(value = "userId") Long userId,
             @RequestHeader(value = "loggedInUser") String username) {
 
-        if (request.getTitle() == null || request.getTitle().isEmpty()
-                || request.getContent() == null || request.getContent().isEmpty()) {
+        if (title == null || title.isEmpty() || content == null || content.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
 
         try {
-            PostDto updatedPost = postService.updatePost(
-                    id,
-                    request.getTitle(),
-                    request.getContent(),
-                    userId
-            );
+            String imageUrl = null;
+            
+            // Upload new image if provided
+            if (file != null && !file.isEmpty()) {
+                try {
+                    ResponseEntity<ImageUploadResponseDto> uploadResponse = fileUploadClient.uploadImage(file);
+                    if (uploadResponse.getStatusCode().is2xxSuccessful() && uploadResponse.getBody() != null) {
+                        imageUrl = uploadResponse.getBody().getImageUrl();
+                    }
+                } catch (Exception e) {
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(null);
+                }
+            }
+
+            PostDto updatedPost = postService.updatePost(id, title, content, userId, imageUrl);
 
             return ResponseEntity.ok(updatedPost);
         } catch (RuntimeException e) {

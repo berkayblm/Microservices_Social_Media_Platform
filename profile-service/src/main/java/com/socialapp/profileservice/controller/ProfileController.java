@@ -1,5 +1,7 @@
 package com.socialapp.profileservice.controller;
 
+import com.socialapp.profileservice.client.FileUploadClient;
+import com.socialapp.profileservice.dto.ImageUploadResponseDto;
 import com.socialapp.profileservice.model.Profile;
 import com.socialapp.profileservice.service.ProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 import java.util.Optional;
@@ -17,6 +20,9 @@ public class ProfileController {
 
     @Autowired
     private ProfileService profileService;
+
+    @Autowired
+    private FileUploadClient fileUploadClient;
 
     @GetMapping("/me")
     public ResponseEntity<Profile> getCurrentUserProfile(
@@ -37,7 +43,37 @@ public class ProfileController {
     }
 
     @PutMapping("/me")
-    public ResponseEntity<Profile> updateCurrentUserProfile(@RequestHeader(value = "userId") Long userId, @Valid @RequestBody Profile profile) {
+    public ResponseEntity<Profile> updateCurrentUserProfile(
+            @RequestHeader(value = "userId") Long userId,
+            @RequestParam(value = "displayName", required = false) String displayName,
+            @RequestParam(value = "bio", required = false) String bio,
+            @RequestParam(value = "file", required = false) MultipartFile file) {
+        
+        // Get existing profile or create new one
+        Optional<Profile> existingProfileOpt = profileService.getProfileByUserId(userId);
+        Profile profile = existingProfileOpt.orElse(new Profile());
+        profile.setUserId(userId);
+        
+        // Update fields if provided
+        if (displayName != null) {
+            profile.setDisplayName(displayName);
+        }
+        if (bio != null) {
+            profile.setBio(bio);
+        }
+        
+        // Upload image if provided
+        if (file != null && !file.isEmpty()) {
+            try {
+                ResponseEntity<ImageUploadResponseDto> uploadResponse = fileUploadClient.uploadImage(file);
+                if (uploadResponse.getStatusCode().is2xxSuccessful() && uploadResponse.getBody() != null) {
+                    profile.setProfilePictureUrl(uploadResponse.getBody().getImageUrl());
+                }
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+        }
+        
         Profile updatedProfile = profileService.updateProfile(userId, profile);
         return updatedProfile != null ? ResponseEntity.ok(updatedProfile) : ResponseEntity.notFound().build();
     }

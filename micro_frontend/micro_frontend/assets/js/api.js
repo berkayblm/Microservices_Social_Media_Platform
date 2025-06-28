@@ -113,11 +113,51 @@ const API = {
     getByUserId: (userId, page = 0, size = 10) =>
       API.request(`${API.POSTS.BY_USER(userId)}?page=${page}&size=${size}`),
 
-    create: (postData) =>
-      API.request(API.POSTS.ALL, 'POST', postData),
+    create: async (postData) => {
+      const formData = new FormData();
+      formData.append('title', postData.title);
+      formData.append('content', postData.content);
+      
+      if (postData.file) {
+        formData.append('file', postData.file);
+      }
 
-    update: (id, postData) =>
-      API.request(API.POSTS.BY_ID(id), 'PUT', postData),
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API.BASE_URL}${API.POSTS.ALL}`, {
+        method: 'POST',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      return await response.json();
+    },
+
+    update: async (id, postData) => {
+      const formData = new FormData();
+      formData.append('title', postData.title);
+      formData.append('content', postData.content);
+      
+      if (postData.file) {
+        formData.append('file', postData.file);
+      }
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API.BASE_URL}${API.POSTS.BY_ID(id)}`, {
+        method: 'PUT',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      return await response.json();
+    },
 
     delete: (id) =>
       API.request(API.POSTS.BY_ID(id), 'DELETE'),
@@ -218,14 +258,23 @@ const API = {
       return JSON.parse(text);
     },
     updateCurrentUserProfile: async (profileData) => {
+      const formData = new FormData();
+      
+      if (profileData.displayName) {
+        formData.append('displayName', profileData.displayName);
+      }
+      if (profileData.bio) {
+        formData.append('bio', profileData.bio);
+      }
+      if (profileData.file) {
+        formData.append('file', profileData.file);
+      }
+
       const token = localStorage.getItem('token');
       const res = await fetch(`${API.BASE_URL}/api/profiles/me`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify(profileData)
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        body: formData
       });
       if (!res.ok) throw new Error('Failed to update current user profile');
       return await res.json();

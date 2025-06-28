@@ -63,9 +63,10 @@ const ProfileController = {
             setText('profileDisplayName', profile.displayName || profile.username);
             setText('profileBio', profile.bio || '');
 
-            const photoEl = document.getElementById('profilePhoto');
-            if (photoEl) {
-                photoEl.src = profile.profilePictureUrl || 'assets/img/default-avatar.png';
+            // Update profile avatar
+            const avatarEl = document.getElementById('profileAvatar');
+            if (avatarEl) {
+                avatarEl.innerHTML = renderAvatar(profile, 100);
             }
 
             setText('postCount', profile.postCount || 0);
@@ -154,7 +155,16 @@ const ProfileController = {
                 editProfileBtn.onclick = () => {
                     document.getElementById('editDisplayName').value = profile.displayName || '';
                     document.getElementById('editBio').value = profile.bio || '';
-                    document.getElementById('editProfilePictureUrl').value = profile.profilePictureUrl || '';
+                    
+                    // Clear file input and preview
+                    const fileInput = document.getElementById('editProfilePicture');
+                    const preview = document.getElementById('profilePicturePreview');
+                    if (fileInput) fileInput.value = '';
+                    if (preview) {
+                        preview.classList.add('d-none');
+                        preview.querySelector('img').src = '';
+                    }
+                    
                     const modal = new bootstrap.Modal(document.getElementById('editProfileModal'));
                     modal.show();
                 };
@@ -165,19 +175,32 @@ const ProfileController = {
             if (editProfileForm && currentUser && String(currentUser.id) === String(userId)) {
                 editProfileForm.onsubmit = async (e) => {
                     e.preventDefault();
-                    const updatedProfile = {
+                    
+                    const profileData = {
                         displayName: document.getElementById('editDisplayName').value,
-                        bio: document.getElementById('editBio').value,
-                        profilePictureUrl: document.getElementById('editProfilePictureUrl').value
+                        bio: document.getElementById('editBio').value
                     };
+                    
+                    // Add file if selected
+                    const fileInput = document.getElementById('editProfilePicture');
+                    if (fileInput && fileInput.files[0]) {
+                        profileData.file = fileInput.files[0];
+                    }
+                    
                     try {
-                        await API.profiles.updateCurrentUserProfile({ ...profile, ...updatedProfile });
+                        await API.profiles.updateCurrentUserProfile(profileData);
                         await ProfileController.loadProfile(userId);
                         bootstrap.Modal.getInstance(document.getElementById('editProfileModal')).hide();
                     } catch (err) {
                         alert('Failed to update profile: ' + (err.message || 'Unknown error'));
                     }
                 };
+            }
+
+            // Set up profile picture preview
+            const profilePictureInput = document.getElementById('editProfilePicture');
+            if (profilePictureInput) {
+                profilePictureInput.addEventListener('change', ProfileController.handleProfilePicturePreview);
             }
         } catch (error) {
             console.error('Error loading profile:', error);
@@ -265,6 +288,25 @@ const ProfileController = {
         }
 
         return col;
+    },
+
+    // Handle profile picture preview
+    handleProfilePicturePreview: (event) => {
+        const file = event.target.files[0];
+        const preview = document.getElementById('profilePicturePreview');
+        const previewImg = preview.querySelector('img');
+
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                preview.classList.remove('d-none');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            preview.classList.add('d-none');
+            previewImg.src = '';
+        }
     }
 };
 
@@ -365,4 +407,17 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-}); 
+});
+
+// Utility function to render user avatar
+function renderAvatar(user, size = 40, extraClass = '') {
+  if (user && (user.profilePhoto || user.profilePictureUrl)) {
+    const url = user.profilePhoto || user.profilePictureUrl;
+    return `<img src="${url}" class="rounded-circle ${extraClass}" width="${size}" height="${size}" alt="${(user.displayName || user.username || 'User')}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`;
+  } else {
+    const initials = user && user.displayName
+      ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase()
+      : (user && user.username ? user.username.charAt(0).toUpperCase() : 'U');
+    return `<div class="default-avatar rounded-circle ${extraClass}" style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:bold;color:#6c757d;background-color:#e9ecef;">${initials}</div>`;
+  }
+} 

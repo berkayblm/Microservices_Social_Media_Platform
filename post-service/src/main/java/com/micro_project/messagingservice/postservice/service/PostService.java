@@ -62,11 +62,12 @@ public class PostService {
 
 
     @Transactional
-    public PostDto createPost(String title, String content, Long userId) {
+    public PostDto createPost(String title, String content, Long userId, String imageUrl) {
         Post post = new Post();
         post.setTitle(title);
         post.setContent(content);
         post.setUserId(userId);
+        post.setImageUrl(imageUrl);
         post.setCreatedAt(LocalDateTime.now());
         Post savedPost = postRepository.save(post);
         return convertToDto(savedPost, userId);
@@ -74,7 +75,7 @@ public class PostService {
 
 
     @Transactional
-    public PostDto updatePost(Long id, String title, String content, Long userId) {
+    public PostDto updatePost(Long id, String title, String content, Long userId, String imageUrl) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
 
@@ -85,6 +86,9 @@ public class PostService {
 
         post.setTitle(title);
         post.setContent(content);
+        if (imageUrl != null) {
+            post.setImageUrl(imageUrl);
+        }
         post.setUpdatedAt(LocalDateTime.now());
 
         Post updatedPost = postRepository.save(post);
@@ -110,6 +114,7 @@ public class PostService {
         postDto.setId(post.getId());
         postDto.setTitle(post.getTitle());
         postDto.setContent(post.getContent());
+        postDto.setImageUrl(post.getImageUrl());
         postDto.setCreatedAt(post.getCreatedAt());
         postDto.setUpdatedAt(post.getUpdatedAt());
         postDto.setUserId(post.getUserId());
@@ -133,6 +138,7 @@ public class PostService {
             ResponseEntity<UserDto> userResponse = userClient.getUserById(post.getUserId());
             if (userResponse.getStatusCode().is2xxSuccessful() && userResponse.getBody() != null) {
                 postDto.setAuthor(userResponse.getBody());
+                postDto.setUserProfileImageUrl(userResponse.getBody().getProfilePhoto());
             }
         } catch (Exception e) {
             // Log error but continue - we don't want post retrieval to fail just because user info is missing

@@ -7,9 +7,6 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PostUpdateRequest {
-    private String title;
-    private String content;
+public class ImageUploadResponseDto {
     private String imageUrl;
-}
-
+} 

@@ -17,6 +17,7 @@ public class PostDto {
     private String imageUrl;
     private String username;
     private Long userId;
+    private String userProfileImageUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private UserDto author;

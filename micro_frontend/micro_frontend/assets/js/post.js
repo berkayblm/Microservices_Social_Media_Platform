@@ -227,7 +227,7 @@ const PostController = {
       if (!editModal) {
         const modalHTML = `
           <div class="modal fade" id="editPostModal" tabindex="-1" aria-labelledby="editPostModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-dialog-centered">
               <div class="modal-content">
                 <div class="modal-header">
                   <h5 class="modal-title" id="editPostModalLabel">Edit Post</h5>
@@ -236,9 +236,23 @@ const PostController = {
                 <div class="modal-body">
                   <form id="editPostForm">
                     <div class="mb-3">
+                      <label for="editPostTitle" class="form-label">Title</label>
+                      <input type="text" class="form-control" id="editPostTitle" required>
+                    </div>
+                    <div class="mb-3">
+                      <label for="editPostContent" class="form-label">Content</label>
                       <textarea class="form-control" id="editPostContent" rows="4" required></textarea>
                     </div>
+                    <div class="mb-3">
+                      <label for="editPostImage" class="form-label">Media (optional)</label>
+                      <input type="file" class="form-control" id="editPostImage" accept="image/*">
+                      <div class="form-text">Supported formats: JPG, PNG, GIF</div>
+                      <div id="editImagePreview" class="mt-2 d-none">
+                        <img src="" alt="Preview" class="img-fluid rounded" style="max-height: 200px;">
+                      </div>
+                    </div>
                     <input type="hidden" id="editPostId">
+                    <input type="hidden" id="editPostCurrentImageUrl">
                   </form>
                 </div>
                 <div class="modal-footer">
@@ -255,11 +269,24 @@ const PostController = {
 
         // Set up event listener for save button
         document.getElementById('savePostBtn').addEventListener('click', PostController.saveEditedPost);
+        
+        // Set up event listener for image preview
+        document.getElementById('editPostImage').addEventListener('change', PostController.handleEditImagePreview);
       }
 
       // Fill in form values
+      document.getElementById('editPostTitle').value = post.title;
       document.getElementById('editPostContent').value = post.content;
       document.getElementById('editPostId').value = postId;
+      document.getElementById('editPostCurrentImageUrl').value = post.imageUrl || '';
+
+      // Show current image if exists
+      if (post.imageUrl) {
+        const preview = document.getElementById('editImagePreview');
+        const previewImg = preview.querySelector('img');
+        previewImg.src = post.imageUrl;
+        preview.classList.remove('d-none');
+      }
 
       // Show modal
       const modal = new bootstrap.Modal(editModal);
@@ -274,9 +301,15 @@ const PostController = {
   // Save edited post
   saveEditedPost: async () => {
     const postId = document.getElementById('editPostId').value;
+    const title = document.getElementById('editPostTitle').value.trim();
     const content = document.getElementById('editPostContent').value.trim();
+    const imageInput = document.getElementById('editPostImage');
     const saveBtn = document.getElementById('savePostBtn');
 
+    if (!title) {
+      alert('Post title cannot be empty');
+      return;
+    }
     if (!content) {
       alert('Post content cannot be empty');
       return;
@@ -287,13 +320,38 @@ const PostController = {
     saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
 
     try {
-      const updatedPost = await API.posts.update(postId, { content });
+      const updateData = {
+        title: title,
+        content: content
+      };
+
+      // Add file if selected
+      if (imageInput && imageInput.files[0]) {
+        updateData.file = imageInput.files[0];
+      }
+
+      const updatedPost = await API.posts.update(postId, updateData);
 
       if (updatedPost) {
         // Update the post in the UI
         const postElement = document.querySelector(`.post-card[data-post-id="${postId}"]`);
         if (postElement) {
+          postElement.querySelector('.card-title').textContent = updatedPost.title;
           postElement.querySelector('.card-text').textContent = updatedPost.content;
+          
+          // Update image if exists
+          const imageContainer = postElement.querySelector('.post-image-container');
+          const postImage = postElement.querySelector('.post-image');
+          if (updatedPost.imageUrl) {
+            if (imageContainer) {
+              imageContainer.classList.remove('d-none');
+              postImage.src = updatedPost.imageUrl;
+            }
+          } else {
+            if (imageContainer) {
+              imageContainer.classList.add('d-none');
+            }
+          }
         }
 
         // Close modal
@@ -308,6 +366,25 @@ const PostController = {
       // Restore button state
       saveBtn.disabled = false;
       saveBtn.textContent = 'Save changes';
+    }
+  },
+
+  // Handle image preview for edit modal
+  handleEditImagePreview: (event) => {
+    const file = event.target.files[0];
+    const preview = document.getElementById('editImagePreview');
+    const previewImg = preview.querySelector('img');
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        previewImg.src = e.target.result;
+        preview.classList.remove('d-none');
+      };
+      reader.readAsDataURL(file);
+    } else {
+      preview.classList.add('d-none');
+      previewImg.src = '';
     }
   },
 
@@ -344,7 +421,7 @@ const CommentController = {
 
     commentElement.innerHTML = `
       <div class="d-flex">
-        <div class="default-avatar me-2">${comment.username.charAt(0).toUpperCase()}</div>
+        ${renderAvatar(comment.author, 32, 'me-2')}
         <div class="flex-grow-1">
           <div class="d-flex align-items-center">
             <h6 class="mb-0 me-2 fw-bold">${comment.username}</h6>
@@ -476,6 +553,7 @@ class PostService {
     async loadPostDetails(postId) {
         try {
             const post = await API.posts.getById(postId);
+            console.log('Post details API response:', post);
             this.currentPost = post;
             this.renderPostDetails(post);
             this.loadComments(postId);
@@ -489,20 +567,36 @@ class PostService {
         // Update page title
         document.title = `${post.title} - SocialApp`;
 
-        // Update post content
-        document.getElementById('postTitle').textContent = post.title;
-        document.getElementById('postContent').textContent = post.content;
-        document.getElementById('postAuthor').textContent = post.author.username;
-        document.getElementById('postDate').textContent = dayjs(post.createdAt).fromNow();
-        document.getElementById('likeCount').textContent = post.likes;
-        document.getElementById('commentCount').textContent = post.comments;
+        // Defensive DOM assignments
+        const postTitleEl = document.getElementById('postTitle');
+        if (postTitleEl) postTitleEl.textContent = post.title || '';
+
+        const postContentEl = document.getElementById('postContent');
+        if (postContentEl) postContentEl.textContent = post.content || '';
+
+        const postAuthorEl = document.getElementById('postAuthor');
+        if (postAuthorEl) postAuthorEl.textContent = (post.author && post.author.username) || post.username || 'Unknown';
+
+        const postDateEl = document.getElementById('postDate');
+        if (postDateEl) postDateEl.textContent = post.createdAt ? dayjs(post.createdAt).fromNow() : '';
+
+        const likeCountEl = document.getElementById('likeCount');
+        if (likeCountEl) likeCountEl.textContent = post.likeCount || 0;
+
+        const commentCountEl = document.getElementById('commentCount');
+        if (commentCountEl) commentCountEl.textContent = post.commentCount || 0;
 
         // Handle post image
         const imageContainer = document.getElementById('postImageContainer');
         const postImage = document.getElementById('postImage');
-        if (post.imageUrl) {
-            imageContainer.classList.remove('d-none');
-            postImage.src = post.imageUrl;
+        if (imageContainer && postImage) {
+            if (post.imageUrl) {
+                imageContainer.classList.remove('d-none');
+                postImage.src = post.imageUrl;
+            } else {
+                imageContainer.classList.add('d-none');
+                postImage.src = '';
+            }
         }
 
         // Set up post actions
@@ -525,6 +619,7 @@ class PostService {
     async loadComments(postId) {
         try {
             const comments = await API.comments.getByPostId(postId);
+            console.log('Comments API response:', comments);
             const container = document.getElementById('commentsContainer');
             container.innerHTML = '';
 
@@ -660,4 +755,16 @@ const postService = new PostService();
 const commentForm = document.getElementById('commentForm');
 if (commentForm) {
     commentForm.addEventListener('submit', (e) => postService.handleAddComment(e));
+}
+
+// Utility function to render user avatar
+function renderAvatar(user, size = 40, extraClass = '') {
+  if (user && user.profilePhoto) {
+    return `<img src="${user.profilePhoto}" class="rounded-circle ${extraClass}" width="${size}" height="${size}" alt="${(user.displayName || user.username || 'User')}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`;
+  } else {
+    const initials = user && user.displayName
+      ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase()
+      : (user && user.username ? user.username.charAt(0).toUpperCase() : 'U');
+    return `<div class="default-avatar rounded-circle ${extraClass}" style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:bold;color:#6c757d;background-color:#e9ecef;">${initials}</div>`;
+  }
 }

@@ -17,4 +17,5 @@ public class PostCreateRequest {
     @NotBlank(message = "Content cannot be blank")
     private String content;
 
+    private String imageUrl;
 }

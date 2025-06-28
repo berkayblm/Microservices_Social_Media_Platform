@@ -1,4 +1,4 @@
-package com.micro_project.messagingservice.postservice.dto;
+package com.socialapp.profileservice.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -7,9 +7,6 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PostUpdateRequest {
-    private String title;
-    private String content;
+public class ImageUploadResponseDto {
     private String imageUrl;
-}
-
+} 

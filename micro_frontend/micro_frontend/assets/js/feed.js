@@ -111,18 +111,13 @@ const FeedController = {
       // Use the calculated page
       const response = await API.posts.getAll(pageToFetch, FeedController.pageSize);
 
-      console.log('API Response:', response);
-
-      // Hide loader
-      const postsLoader = document.getElementById('postsLoader');
-      if (postsLoader) {
-        postsLoader.classList.add('d-none');
-      }
+      console.log('API Response for posts:', response);
 
       // If we got a valid response with posts
-      if (response && response.posts && response.posts.length > 0) {
+      const posts = response.posts || response.content || [];
+      if (posts && posts.length > 0) {
         // Update pagination information - fix the logic
-        FeedController.hasMorePosts = pageToFetch < response.totalPages - 1;
+        FeedController.hasMorePosts = pageToFetch < (response.totalPages ? response.totalPages - 1 : 0);
 
         // Show or hide load more button
         const loadMoreContainer = document.getElementById('loadMoreContainer');
@@ -137,7 +132,7 @@ const FeedController = {
         // Render posts
         const postsFeed = document.getElementById('postsFeed');
         if (postsFeed) {
-          response.posts.forEach(post => {
+          posts.forEach(post => {
             const postElement = FeedController.createPostElement(post);
             postsFeed.appendChild(postElement);
           });
@@ -200,14 +195,19 @@ const FeedController = {
     postElement.dataset.postId = post.id;
 
     // Create post content
+    let imageHtml = '';
+    if (post.imageUrl) {
+      imageHtml = `
+        <div class="post-image-container">
+          <img src="${post.imageUrl}" alt="Post image" class="img-fluid rounded post-image mb-3">
+        </div>
+      `;
+    }
+
     postElement.innerHTML = `
        <div class="card-body">
          <div class="d-flex align-items-center mb-2">
-           ${post.author.profileImageUrl ?
-               `<img src="${post.author.profileImageUrl}"
-                     class="rounded-circle me-2" width="40" height="40" alt="${post.author.username}">` :
-               `<div class="default-avatar me-2">${post.author.username.charAt(0).toUpperCase()}</div>`
-           }
+           ${renderAvatar(post.author, 40, 'me-2')}
            <div>
              <h6 class="mb-0">
                <a href="./profile.html?userId=${post.author.id}" class="text-decoration-none text-dark">
@@ -217,7 +217,9 @@ const FeedController = {
              <small class="text-muted">@${post.author.username} · ${new Date(post.createdAt).toLocaleString()}</small>
            </div>
          </div>
-         <p class="card-text">${post.content}</p>
+         <h5 class="card-title post-title">${post.title}</h5>
+         <p class="card-text post-content">${post.content}</p>
+         ${imageHtml}
          <div class="d-flex justify-content-between">
            <button class="btn btn-sm ${post.likedByCurrentUser ? 'btn-primary' : 'btn-outline-primary'} like-button" data-post-id="${post.id}">
              <i class="${post.likedByCurrentUser ? 'fas' : 'far'} fa-heart"></i>
@@ -318,16 +320,15 @@ const FeedController = {
     text.textContent = 'Posting...';
 
     try {
-      let imageUrl = null;
-      if (imageInput && imageInput.files[0]) {
-        imageUrl = await FeedController.uploadImage(imageInput.files[0]);
-      }
-
       const postData = {
         title: titleInput.value.trim(),
-        content: contentInput.value.trim(),
-        imageUrl: imageUrl
+        content: contentInput.value.trim()
       };
+
+      // Add file if selected
+      if (imageInput && imageInput.files[0]) {
+        postData.file = imageInput.files[0];
+      }
 
       const newPost = await API.posts.create(postData);
 
@@ -361,29 +362,6 @@ const FeedController = {
       submitBtn.disabled = false;
       spinner.classList.add('d-none');
       text.textContent = 'Post';
-    }
-  },
-
-  // Upload image helper
-  uploadImage: async (file) => {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to upload image');
-      }
-
-      const data = await response.json();
-      return data.imageUrl;
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      throw new Error('Failed to upload image: ' + error.message);
     }
   },
 
@@ -517,16 +495,10 @@ const FeedController = {
       user.displayName.split(' ').map(n => n[0]).join('').toUpperCase() : 
       user.username.charAt(0).toUpperCase();
     
-    const avatarHtml = user.profilePictureUrl ? 
-      `<img src="${user.profilePictureUrl}" class="recommended-user-avatar" alt="${user.displayName || user.username}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-      '';
-    
-    const fallbackAvatar = `<div class="recommended-user-avatar default-avatar" style="display: ${user.profilePictureUrl ? 'none' : 'flex'}; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; color: #6c757d; background-color: #e9ecef;">${initials}</div>`;
-
+    const avatarHtml = renderAvatar(user, 40, 'recommended-user-avatar');
     return `
       <div class="recommended-user-item" data-user-id="${user.id}">
         ${avatarHtml}
-        ${fallbackAvatar}
         <div class="recommended-user-info">
           <div class="recommended-user-name">${user.displayName || user.username}</div>
           <div class="recommended-user-username">@${user.username}</div>
@@ -799,7 +771,7 @@ const FeedController = {
 };
 
 // Initialize feed when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   FeedController.init();
 
   const allTab = document.getElementById('all-tab');
@@ -810,6 +782,35 @@ document.addEventListener('DOMContentLoaded', () => {
   const followingPostsFeed = document.getElementById('followingPostsFeed');
   const postsLoader = document.getElementById('postsLoader');
   const followingPostsLoader = document.getElementById('followingPostsLoader');
+
+  // Sidebar profile logging and mapping
+  const sidebarUsername = document.getElementById('sidebarUsername');
+  const sidebarFullName = document.getElementById('sidebarFullName');
+  const sidebarAvatar = document.querySelector('.default-avatar.me-3');
+
+  try {
+    const profile = await API.profiles.getCurrentUserProfile();
+    console.log('Sidebar profile API response:', profile);
+
+    if (sidebarUsername) {
+      const displayName = profile && profile.displayName ? profile.displayName : '';
+      sidebarUsername.textContent = displayName ? `Name: ${displayName}` : 'Name: (not set)';
+    }
+    if (sidebarFullName) {
+      // Robust username mapping
+      const username = profile && (profile.username || profile.userName || profile.name) ? (profile.username || profile.userName || profile.name) : 'username';
+      sidebarFullName.textContent = `Username: ${username}`;
+    }
+    if (sidebarAvatar && (profile.profilePhoto || profile.profilePictureUrl)) {
+      const url = profile.profilePhoto || profile.profilePictureUrl;
+      sidebarAvatar.outerHTML = `<img src="${url}" class="rounded-circle me-3" width="64" height="64" alt="${profile.displayName || profile.username}" onerror="this.style.display='none';">`;
+    }
+    // Log what is being set
+    console.log('Sidebar username:', sidebarUsername ? sidebarUsername.textContent : null);
+    console.log('Sidebar full name:', sidebarFullName ? sidebarFullName.textContent : null);
+  } catch (err) {
+    console.error('Failed to fetch sidebar profile:', err);
+  }
 
   // Tab switching event listeners
   if (allTab) {
@@ -828,3 +829,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+// Utility function to render user avatar
+function renderAvatar(user, size = 40, extraClass = '') {
+  if (user.profilePhoto) {
+    return `<img src="${user.profilePhoto}" class="rounded-circle ${extraClass}" width="${size}" height="${size}" alt="${user.displayName || user.username}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`;
+  } else {
+    const initials = user.displayName
+      ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase()
+      : user.username.charAt(0).toUpperCase();
+    return `<div class="default-avatar rounded-circle ${extraClass}" style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:bold;color:#6c757d;background-color:#e9ecef;">${initials}</div>`;
+  }
+}

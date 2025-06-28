@@ -114,6 +114,16 @@ spring:
                 name: messaging-service
                 fallbackUri: forward:/fallback
 
+        - id: file-upload-service
+          uri: lb://FILE-UPLOAD-SERVICE
+          predicates:
+            - Path=/api/upload/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: file-upload-service
+                fallbackUri: forward:/fallback
+
   data:
     redis:
       host: localhost
@@ -150,6 +160,11 @@ resilience4j:
         failure-rate-threshold: 50
         wait-duration-in-open-state: 10s
       messaging-service:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+      file-upload-service:
         sliding-window-size: 10
         minimum-number-of-calls: 5
         failure-rate-threshold: 50

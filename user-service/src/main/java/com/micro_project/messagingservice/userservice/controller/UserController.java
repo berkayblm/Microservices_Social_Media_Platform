@@ -1,5 +1,6 @@
 package com.micro_project.messagingservice.userservice.controller;
 
+import com.micro_project.messagingservice.userservice.client.ProfileServiceClient;
 import com.micro_project.messagingservice.userservice.config.JwtUtil;
 import com.micro_project.messagingservice.userservice.dto.UserDto;
 import com.micro_project.messagingservice.userservice.entity.User;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -19,6 +21,8 @@ public class UserController {
     private UserService userService;
     @Autowired
     private JwtUtil jwtUtil;
+    @Autowired
+    private ProfileServiceClient profileServiceClient;
 
     @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
@@ -27,10 +31,29 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
-        Optional<User> user = userService.getUserById(id);
-        return user.map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<UserDto> getUserById(@PathVariable Long id) {
+        Optional<User> userOpt = userService.getUserById(id);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            UserDto userDto = new UserDto();
+            userDto.setId(user.getId());
+            userDto.setUsername(user.getUsername());
+            
+            // Try to get profile information
+            try {
+                Map<String, Object> profile = profileServiceClient.getProfileByUserId(id);
+                if (profile != null) {
+                    userDto.setProfilePhoto((String) profile.get("profilePictureUrl"));
+                    userDto.setDisplayName((String) profile.get("displayName"));
+                }
+            } catch (Exception e) {
+                // If profile service is not available, continue without profile info
+                System.out.println("Profile service not available for user " + id + ": " + e.getMessage());
+            }
+            
+            return ResponseEntity.ok(userDto);
+        }
+        return ResponseEntity.notFound().build();
     }
 
     @GetMapping("/username/{username}")
@@ -70,16 +93,56 @@ public class UserController {
     }
 
     @GetMapping("/random")
-    public ResponseEntity<List<User>> getRandomUsers(@RequestParam(defaultValue = "8") int limit) {
+    public ResponseEntity<List<UserDto>> getRandomUsers(@RequestParam(defaultValue = "8") int limit) {
         List<User> randomUsers = userService.getRandomUsers(limit);
-        return ResponseEntity.ok(randomUsers);
+        List<UserDto> userDtos = randomUsers.stream().map(user -> {
+            UserDto userDto = new UserDto();
+            userDto.setId(user.getId());
+            userDto.setUsername(user.getUsername());
+            
+            // Try to get profile information
+            try {
+                Map<String, Object> profile = profileServiceClient.getProfileByUserId(user.getId());
+                if (profile != null) {
+                    userDto.setProfilePhoto((String) profile.get("profilePictureUrl"));
+                    userDto.setDisplayName((String) profile.get("displayName"));
+                }
+            } catch (Exception e) {
+                // If profile service is not available, continue without profile info
+                System.out.println("Profile service not available for user " + user.getId() + ": " + e.getMessage());
+            }
+            
+            return userDto;
+        }).toList();
+        
+        return ResponseEntity.ok(userDtos);
     }
 
     @PostMapping("/random/exclude")
-    public ResponseEntity<List<User>> getRandomUsersExcludingIds(
+    public ResponseEntity<List<UserDto>> getRandomUsersExcludingIds(
             @RequestBody List<Long> excludeIds,
             @RequestParam(defaultValue = "8") int limit) {
         List<User> randomUsers = userService.getRandomUsersExcludingIds(excludeIds, limit);
-        return ResponseEntity.ok(randomUsers);
+        List<UserDto> userDtos = randomUsers.stream().map(user -> {
+            UserDto userDto = new UserDto();
+            userDto.setId(user.getId());
+            userDto.setUsername(user.getUsername());
+            
+            // Try to get profile information
+            try {
+                Map<String, Object> profile = profileServiceClient.getProfileByUserId(user.getId());
+                if (profile != null) {
+                    userDto.setProfilePhoto((String) profile.get("profilePictureUrl"));
+                    userDto.setDisplayName((String) profile.get("displayName"));
+                }
+            } catch (Exception e) {
+                // If profile service is not available, continue without profile info
+                System.out.println("Profile service not available for user " + user.getId() + ": " + e.getMessage());
+            }
+            
+            return userDto;
+        }).toList();
+        
+        return ResponseEntity.ok(userDtos);
     }
 }

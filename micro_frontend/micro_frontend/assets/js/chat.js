@@ -63,7 +63,7 @@ const ChatController = {
                         id: follow.following.id,
                         username: userProfile.username || follow.following.username,
                         displayName: userProfile.displayName || userProfile.username,
-                        profilePictureUrl: userProfile.profilePictureUrl || null
+                        profilePhoto: userProfile.profilePhoto || userProfile.profilePictureUrl || null
                     };
                 } catch (error) {
                     console.error('Error getting user details:', error);
@@ -71,7 +71,7 @@ const ChatController = {
                         id: follow.following.id,
                         username: follow.following.username,
                         displayName: follow.following.username,
-                        profilePictureUrl: null
+                        profilePhoto: null
                     };
                 }
             });
@@ -79,17 +79,12 @@ const ChatController = {
             const userDetails = await Promise.all(userDetailsPromises);
 
             followingList.innerHTML = userDetails.map(user => {
-                const initials = user.displayName ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase() : user.username[0].toUpperCase();
-                const avatarHtml = user.profilePictureUrl 
-                    ? `<img src="${user.profilePictureUrl}" class="rounded-circle me-3" width="40" height="40" alt="${user.displayName}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
-                    : '';
-                const fallbackAvatar = `<div class="rounded-circle me-3 default-avatar" style="width: 40px; height: 40px; font-size: 1rem; display: ${user.profilePictureUrl ? 'none' : 'flex'};" alt="${user.displayName}">${initials}</div>`;
+                const avatarHtml = renderAvatar(user, 40, 'me-3');
                 
                 return `
                     <div class="list-group-item list-group-item-action d-flex align-items-center" 
                          onclick="ChatController.selectUserForChat('${user.id}', '${user.username}', '${user.displayName}')">
                         ${avatarHtml}
-                        ${fallbackAvatar}
                         <div>
                             <div class="fw-bold">${user.displayName}</div>
                             <small class="text-muted">@${user.username}</small>
@@ -130,7 +125,7 @@ const ChatController = {
                         id: userId,
                         username: userProfile.username,
                         displayName: userProfile.displayName || userProfile.username,
-                        profilePictureUrl: userProfile.profilePictureUrl || null
+                        profilePhoto: userProfile.profilePhoto || userProfile.profilePictureUrl || null
                     };
                 } catch (error) {
                     console.error('Error getting user details:', error);
@@ -138,7 +133,7 @@ const ChatController = {
                         id: userId,
                         username: `User ${userId}`,
                         displayName: `User ${userId}`,
-                        profilePictureUrl: null
+                        profilePhoto: null
                     };
                 }
             });
@@ -146,17 +141,12 @@ const ChatController = {
             const userDetails = await Promise.all(userDetailsPromises);
 
             conversationList.innerHTML = userDetails.map(user => {
-                const initials = user.displayName ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase() : user.username[0].toUpperCase();
-                const avatarHtml = user.profilePictureUrl 
-                    ? `<img src="${user.profilePictureUrl}" class="rounded-circle me-3" width="40" height="40" alt="${user.displayName}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
-                    : '';
-                const fallbackAvatar = `<div class="rounded-circle me-3 default-avatar" style="width: 40px; height: 40px; font-size: 1rem; display: ${user.profilePictureUrl ? 'none' : 'flex'};" alt="${user.displayName}">${initials}</div>`;
+                const avatarHtml = renderAvatar(user, 40, 'me-3');
                 
                 return `
                     <div class="list-group-item list-group-item-action d-flex align-items-center" 
                          onclick="ChatController.selectUserForChat('${user.id}', '${user.username}', '${user.displayName}')">
                         ${avatarHtml}
-                        ${fallbackAvatar}
                         <div>
                             <div class="fw-bold">${user.displayName}</div>
                             <small class="text-muted">@${user.username}</small>
@@ -392,4 +382,17 @@ document.addEventListener('DOMContentLoaded', ChatController.init);
 // Clean up on page unload
 window.addEventListener('beforeunload', () => {
     ChatController.stopAutoRefresh();
-}); 
+});
+
+// Utility function to render user avatar
+function renderAvatar(user, size = 40, extraClass = '') {
+  if (user && (user.profilePhoto || user.profilePictureUrl)) {
+    const url = user.profilePhoto || user.profilePictureUrl;
+    return `<img src="${url}" class="rounded-circle ${extraClass}" width="${size}" height="${size}" alt="${user.displayName || user.username || 'User'}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`;
+  } else {
+    const initials = user && user.displayName
+      ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase()
+      : (user && user.username ? user.username.charAt(0).toUpperCase() : 'U');
+    return `<div class="default-avatar rounded-circle ${extraClass}" style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:bold;color:#6c757d;background-color:#e9ecef;">${initials}</div>`;
+  }
+} 
