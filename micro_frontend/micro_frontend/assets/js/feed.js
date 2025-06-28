@@ -37,6 +37,9 @@ const FeedController = {
     // Load initial posts
     await FeedController.loadPosts();
 
+    // Load recommended users
+    await FeedController.loadRecommendedUsers();
+
     // Set up event listeners
     const submitPostBtn = document.getElementById('submitPostBtn');
     if (submitPostBtn) {
@@ -46,6 +49,18 @@ const FeedController = {
     const loadMoreBtn = document.getElementById('loadMoreBtn');
     if (loadMoreBtn) {
       loadMoreBtn.addEventListener('click', FeedController.loadMorePosts);
+    }
+
+    // Set up refresh recommended users button
+    const refreshRecommendedBtn = document.getElementById('refreshRecommendedBtn');
+    if (refreshRecommendedBtn) {
+      refreshRecommendedBtn.addEventListener('click', FeedController.loadRecommendedUsers);
+    }
+
+    // Set up randomize recommended users button
+    const randomizeRecommendedBtn = document.getElementById('randomizeRecommendedBtn');
+    if (randomizeRecommendedBtn) {
+      randomizeRecommendedBtn.addEventListener('click', FeedController.randomizeRecommendedUsers);
     }
 
     // Set up infinite scroll
@@ -429,7 +444,358 @@ const FeedController = {
     const followingPostsLoader = document.getElementById('followingPostsLoader');
     if (followingPostsFeed) followingPostsFeed.innerHTML = '';
     if (followingPostsLoader) followingPostsLoader.classList.remove('d-none');
-  }
+  },
+
+  // Load recommended users
+  loadRecommendedUsers: async () => {
+    const recommendedUsersList = document.getElementById('recommendedUsersList');
+    if (!recommendedUsersList) return;
+
+    // Show loading skeleton
+    recommendedUsersList.innerHTML = FeedController.createRecommendedUsersSkeleton();
+
+    try {
+      // Get following users to exclude them from recommendations
+      const followingUsers = await FeedController.getFollowingUsers();
+      const currentUserId = FeedController.currentUserId;
+      
+      // Create list of IDs to exclude (current user + following users)
+      const excludeIds = [currentUserId];
+      followingUsers.forEach(follow => {
+        excludeIds.push(follow.following.id);
+      });
+
+      // Get random users from backend API
+      const randomUsers = await API.users.getRandomUsersExcludingIds(excludeIds, 8);
+
+      if (!randomUsers || randomUsers.length === 0) {
+        recommendedUsersList.innerHTML = `
+          <div class="text-center p-4">
+            <i class="fas fa-users fa-2x text-muted mb-2"></i>
+            <p class="text-muted mb-0">No more users to suggest</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Render recommended users
+      const usersHtml = randomUsers.map(user => 
+        FeedController.createRecommendedUserElement(user)
+      ).join('');
+
+      // Add "Show More" button if there are more users available
+      const showMoreButton = randomUsers.length >= 8 ? `
+        <div class="show-more-container">
+          <button class="btn show-more-btn" onclick="FeedController.loadMoreRecommendedUsers()">
+            <i class="fas fa-random"></i> Show More Random Users
+          </button>
+        </div>
+      ` : '';
+
+      recommendedUsersList.innerHTML = usersHtml + showMoreButton;
+
+      // Set up follow buttons
+      FeedController.setupFollowButtons();
+
+    } catch (error) {
+      console.error('Error loading recommended users:', error);
+      recommendedUsersList.innerHTML = `
+        <div class="text-center p-4">
+          <i class="fas fa-exclamation-triangle fa-2x text-muted mb-2"></i>
+          <p class="text-muted mb-0">Failed to load suggestions</p>
+          <button class="btn btn-sm btn-outline-primary mt-2" onclick="FeedController.loadRecommendedUsers()">
+            Try Again
+          </button>
+        </div>
+      `;
+    }
+  },
+
+  // Create recommended user element
+  createRecommendedUserElement: (user) => {
+    const initials = user.displayName ? 
+      user.displayName.split(' ').map(n => n[0]).join('').toUpperCase() : 
+      user.username.charAt(0).toUpperCase();
+    
+    const avatarHtml = user.profilePictureUrl ? 
+      `<img src="${user.profilePictureUrl}" class="recommended-user-avatar" alt="${user.displayName || user.username}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+      '';
+    
+    const fallbackAvatar = `<div class="recommended-user-avatar default-avatar" style="display: ${user.profilePictureUrl ? 'none' : 'flex'}; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; color: #6c757d; background-color: #e9ecef;">${initials}</div>`;
+
+    return `
+      <div class="recommended-user-item" data-user-id="${user.id}">
+        ${avatarHtml}
+        ${fallbackAvatar}
+        <div class="recommended-user-info">
+          <div class="recommended-user-name">${user.displayName || user.username}</div>
+          <div class="recommended-user-username">@${user.username}</div>
+          <div class="recommended-user-followers">${user.followerCount || 0} followers</div>
+        </div>
+        <button class="btn btn-primary btn-sm follow-btn" data-user-id="${user.id}" onclick="FeedController.toggleFollow(${user.id}, this)">
+          Follow
+        </button>
+      </div>
+    `;
+  },
+
+  // Create loading skeleton for recommended users
+  createRecommendedUsersSkeleton: () => {
+    return Array(5).fill(0).map(() => `
+      <div class="recommended-user-skeleton">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-text">
+          <div class="skeleton-name"></div>
+          <div class="skeleton-username"></div>
+        </div>
+        <div class="skeleton-button"></div>
+      </div>
+    `).join('');
+  },
+
+  // Setup follow buttons
+  setupFollowButtons: () => {
+    const followButtons = document.querySelectorAll('.follow-btn');
+    followButtons.forEach(button => {
+      const userId = button.getAttribute('data-user-id');
+      // Check if already following
+      FeedController.checkFollowStatus(userId, button);
+    });
+  },
+
+  // Check follow status
+  checkFollowStatus: async (userId, button) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API.BASE_URL}/api/follows/${FeedController.currentUserId}/is-following/${userId}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      
+      if (response.ok) {
+        const isFollowing = await response.json();
+        if (isFollowing) {
+          button.textContent = 'Following';
+          button.classList.add('following');
+          button.classList.remove('btn-primary');
+        }
+      }
+    } catch (error) {
+      console.error('Error checking follow status:', error);
+    }
+  },
+
+  // Toggle follow/unfollow
+  toggleFollow: async (userId, button) => {
+    try {
+      const isFollowing = button.classList.contains('following');
+      const token = localStorage.getItem('token');
+      
+      if (isFollowing) {
+        // Unfollow
+        const response = await fetch(`${API.BASE_URL}/api/follows/${FeedController.currentUserId}/unfollow/${userId}`, {
+          method: 'DELETE',
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        
+        if (response.ok) {
+          button.textContent = 'Follow';
+          button.classList.remove('following');
+          button.classList.add('btn-primary');
+        }
+      } else {
+        // Follow
+        const response = await fetch(`${API.BASE_URL}/api/follows/${FeedController.currentUserId}/follow/${userId}`, {
+          method: 'POST',
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        
+        if (response.ok) {
+          button.textContent = 'Following';
+          button.classList.add('following');
+          button.classList.remove('btn-primary');
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      alert('Failed to update follow status. Please try again.');
+    }
+  },
+
+  // Randomize recommended users
+  randomizeRecommendedUsers: async () => {
+    const recommendedUsersList = document.getElementById('recommendedUsersList');
+    if (!recommendedUsersList) return;
+
+    // Show loading state
+    const randomizeBtn = document.getElementById('randomizeRecommendedBtn');
+    if (randomizeBtn) {
+      const originalContent = randomizeBtn.innerHTML;
+      randomizeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      randomizeBtn.disabled = true;
+
+      try {
+        // Get following users to exclude them from recommendations
+        const followingUsers = await FeedController.getFollowingUsers();
+        const currentUserId = FeedController.currentUserId;
+        
+        // Create list of IDs to exclude (current user + following users)
+        const excludeIds = [currentUserId];
+        followingUsers.forEach(follow => {
+          excludeIds.push(follow.following.id);
+        });
+
+        // Get random users from backend API
+        const randomUsers = await API.users.getRandomUsersExcludingIds(excludeIds, 8);
+
+        if (!randomUsers || randomUsers.length === 0) {
+          recommendedUsersList.innerHTML = `
+            <div class="text-center p-4">
+              <i class="fas fa-users fa-2x text-muted mb-2"></i>
+              <p class="text-muted mb-0">No more users to suggest</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Render new random users
+        const usersHtml = randomUsers.map(user => 
+          FeedController.createRecommendedUserElement(user)
+        ).join('');
+
+        // Add "Show More" button if there are more users available
+        const showMoreButton = randomUsers.length >= 8 ? `
+          <div class="show-more-container">
+            <button class="btn show-more-btn" onclick="FeedController.loadMoreRecommendedUsers()">
+              <i class="fas fa-random"></i> Show More Random Users
+            </button>
+          </div>
+        ` : '';
+
+        recommendedUsersList.innerHTML = usersHtml + showMoreButton;
+
+        // Set up follow buttons
+        FeedController.setupFollowButtons();
+
+        // Show success feedback
+        randomizeBtn.innerHTML = '<i class="fas fa-check"></i>';
+        setTimeout(() => {
+          randomizeBtn.innerHTML = originalContent;
+          randomizeBtn.disabled = false;
+        }, 1000);
+
+      } catch (error) {
+        console.error('Error randomizing recommended users:', error);
+        randomizeBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+        setTimeout(() => {
+          randomizeBtn.innerHTML = originalContent;
+          randomizeBtn.disabled = false;
+        }, 2000);
+      }
+    }
+  },
+
+  // Get all users
+  getAllUsers: async () => {
+    try {
+      return await API.users.getAll();
+    } catch (error) {
+      console.error('Error fetching all users:', error);
+      return [];
+    }
+  },
+
+  // Get following users
+  getFollowingUsers: async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API.BASE_URL}/api/follows/${FeedController.currentUserId}/following`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch following users');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching following users:', error);
+      return [];
+    }
+  },
+
+  // Enhanced Fisher-Yates shuffle algorithm for better randomization
+  shuffleArray: (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  },
+
+  // Load more random users
+  loadMoreRecommendedUsers: async () => {
+    const recommendedUsersList = document.getElementById('recommendedUsersList');
+    if (!recommendedUsersList) return;
+
+    // Show loading state
+    const showMoreButton = recommendedUsersList.querySelector('button');
+    if (showMoreButton) {
+      showMoreButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+      showMoreButton.disabled = true;
+    }
+
+    try {
+      // Get following users to exclude them from recommendations
+      const followingUsers = await FeedController.getFollowingUsers();
+      const currentUserId = FeedController.currentUserId;
+      
+      // Create list of IDs to exclude (current user + following users)
+      const excludeIds = [currentUserId];
+      followingUsers.forEach(follow => {
+        excludeIds.push(follow.following.id);
+      });
+
+      // Get random users from backend API
+      const randomUsers = await API.users.getRandomUsersExcludingIds(excludeIds, 8);
+
+      if (!randomUsers || randomUsers.length === 0) {
+        recommendedUsersList.innerHTML = `
+          <div class="text-center p-4">
+            <i class="fas fa-users fa-2x text-muted mb-2"></i>
+            <p class="text-muted mb-0">No more users to suggest</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Render new random users
+      const usersHtml = randomUsers.map(user => 
+        FeedController.createRecommendedUserElement(user)
+      ).join('');
+
+      // Add "Show More" button if there are more users available
+      const newShowMoreButton = randomUsers.length >= 8 ? `
+        <div class="show-more-container">
+          <button class="btn show-more-btn" onclick="FeedController.loadMoreRecommendedUsers()">
+            <i class="fas fa-random"></i> Show More Random Users
+          </button>
+        </div>
+      ` : '';
+
+      recommendedUsersList.innerHTML = usersHtml + newShowMoreButton;
+
+      // Set up follow buttons
+      FeedController.setupFollowButtons();
+
+    } catch (error) {
+      console.error('Error loading more recommended users:', error);
+      if (showMoreButton) {
+        showMoreButton.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Try Again';
+        showMoreButton.disabled = false;
+      }
+    }
+  },
 };
 
 // Initialize feed when DOM is ready

@@ -37,6 +37,26 @@ spring:
             - Path=/api/users/validateToken
           # No AuthenticationFilter here
 
+        - id: users-public
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: user-service
+                fallbackUri: forward:/fallback
+
+        - id: users-random-public
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/random, /api/users/random/exclude
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: user-service
+                fallbackUri: forward:/fallback
+
         - id: user-service
           uri: lb://user-service
           predicates:
@@ -47,11 +67,7 @@ spring:
               args:
                 name: user-service
                 fallbackUri: forward:/fallback
-            - name: RequestRateLimiter
-              args:
-                redis-rate-limiter.replenish-rate: 10
-                redis-rate-limiter.burst-capacity: 20
-                redis-rate-limiter.requested-tokens: 1
+
 
         - id: profile-service
           uri: lb://profile-service
@@ -87,6 +103,16 @@ spring:
                 name: followers-service
                 fallbackUri: forward:/fallback
 
+        - id: messaging-service
+          uri: lb://messaging-service
+          predicates:
+            - Path=/api/messages/**
+          filters:
+            - name: AuthenticationFilter
+            - name: CircuitBreaker
+              args:
+                name: messaging-service
+                fallbackUri: forward:/fallback
 
   data:
     redis:
@@ -119,6 +145,11 @@ resilience4j:
         failure-rate-threshold: 50
         wait-duration-in-open-state: 10s
       followers-service:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+      messaging-service:
         sliding-window-size: 10
         minimum-number-of-calls: 5
         failure-rate-threshold: 50

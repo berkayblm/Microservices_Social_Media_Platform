@@ -1,0 +1,17 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: messaging-service
+  data:
+    redis:
+      host: localhost
+      password: 123456
+      port: 6379
+      timeout: 2000ms
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka

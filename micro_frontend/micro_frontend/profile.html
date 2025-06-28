@@ -9,33 +9,39 @@
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="./feed.html">SocialApp</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="feed.html">SocialApp</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav">
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link" href="./feed.html"><i class="fas fa-home"></i> Home</a>
+                        <a class="nav-link" href="feed.html"><i class="fas fa-home"></i> Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-compass"></i> Explore</a>
+                        <a class="nav-link active" href="profile.html"><i class="fas fa-user"></i> Profile</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-plus-square"></i> Create</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-bell"></i> Notifications</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="./profile.html"><i class="fas fa-user"></i> Profile</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                        <a class="nav-link" href="chat.html"><i class="fas fa-comments"></i> Chats</a>
                     </li>
                 </ul>
+                <div class="d-flex">
+                    <button class="btn btn-light me-2" data-bs-toggle="modal" data-bs-target="#createPostModal" style="display:none;">
+                        <i class="fas fa-plus"></i> New Post
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                            <span id="currentUsername">User</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="profile.html">My Profile</a></li>
+                            <li><a class="dropdown-item" href="#" id="logoutBtn">Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </nav>
@@ -87,8 +93,6 @@
             </div>
         </div>
     </main>
-
-
 
     <!-- Followers Modal -->
     <div class="modal fade" id="followersModal" tabindex="-1" aria-hidden="true">
