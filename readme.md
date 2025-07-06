@@ -23,6 +23,7 @@ This project implements a comprehensive social media platform built using a micr
 - Rate limiting and security measures
 
 ## System Architecture
+![alt text](https://drive.google.com/file/d/1YfMQ4G7BIXQsaYbecZR4kUDmcc0xitRE/view?usp=drive_link)
 
 ### 1. Service Discovery (Discovery Service)
 - **Port**: 8761
