@@ -121,7 +121,7 @@ public class Post {
 
 ### 6. Followers Service
 - **Port**: 8084
-- **Database**: MySQL
+- **Database**: MongoDb
 - **Purpose**: Social connections and user relationships
 - **Features**:
   - Follow/unfollow users
@@ -267,47 +267,6 @@ public class Post {
 - `POST /api/upload` - Upload file
 - `GET /api/upload/{filename}` - Get file
 
-## Testing Strategy
-
-### Testing Levels
-- **Unit Testing**: Individual service component testing
-- **Integration Testing**: Service-to-service communication testing
-- **End-to-End Testing**: Complete user workflow testing
-- **Performance Testing**: Load and stress testing
-
-### Test Coverage
-- **Backend Services**: Spring Boot test framework
-- **Frontend**: JavaScript testing framework integration
-- **API Testing**: Postman/HTTP client testing
-
-## Monitoring & Observability
-
-### Health Checks
-- **Actuator Endpoints**: Spring Boot Actuator for service health
-- **Eureka Health**: Service discovery health monitoring
-- **Database Health**: Connection and query performance monitoring
-
-### Logging
-- **Structured Logging**: Consistent log format across services
-- **Debug Logging**: Detailed authentication and routing logs
-- **Error Tracking**: Comprehensive error logging and monitoring
-
-## Future Enhancements
-
-### Planned Features
-1. **Real-time Notifications**: Push notifications for user interactions
-2. **Advanced Search**: Full-text search across posts and users
-3. **Media Processing**: Image optimization and video support
-4. **Analytics Dashboard**: User engagement and content analytics
-5. **Mobile Application**: Native mobile app development
-6. **Microservices Monitoring**: Distributed tracing and monitoring
-
-### Technical Improvements
-1. **Event Sourcing**: Event-driven architecture for better scalability
-2. **Message Queues**: Asynchronous processing with message queues
-3. **API Versioning**: Proper API versioning strategy
-4. **Database Sharding**: Horizontal database scaling
-5. **CDN Integration**: Content delivery network for static assets
 
 ## Conclusion
 
