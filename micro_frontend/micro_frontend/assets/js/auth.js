@@ -66,7 +66,7 @@ const AuthService = {
 };
 
 // Run on page load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // Check authentication status based on current page
   const currentPath = window.location.pathname;
   const publicPages = ['/login.html', '/signup.html', '/index.html'];
@@ -199,23 +199,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (AuthService.isAuthenticated()) {
     const user = AuthService.getCurrentUser();
+    
+    // Update navigation username with display name from profile
     if (currentUsername) {
-      currentUsername.textContent = user.username;
+      // Try to get profile data for display name, fallback to username
+      try {
+        const profile = await API.profiles.getCurrentUserProfile();
+        currentUsername.textContent = profile.displayName || user.username;
+      } catch (error) {
+        console.error('Error fetching profile for navigation:', error);
+        currentUsername.textContent = user.username;
+      }
     }
 
-    if (sidebarUsername) {
-      sidebarUsername.textContent = user.username;
-    }
-
-    // Get additional user info if needed
-    if (sidebarFullName && user.id) {
-      API.users.getById(user.id)
-        .then(userData => {
-          if (userData) {
-            sidebarFullName.textContent = `${userData.firstName} ${userData.lastName}`;
-          }
-        })
-        .catch(error => console.error('Error fetching user details:', error));
-    }
+    // Sidebar will be updated by feed.js, so we don't need to set it here
   }
 });

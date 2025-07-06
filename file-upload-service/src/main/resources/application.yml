@@ -13,9 +13,9 @@ eureka:
       defaultZone : http://localhost:8761/eureka/
 
 cloudinary:
-  cloud_name: dzqln71bi
-  api_key: 597924396389619
-  api_secret: jGiGrBYYjALKc0wQu-t1pFmH2c4
+  cloud_name: xxx
+  api_key: xxx
+  api_secret: xxx
 
 server:
   port: 9895

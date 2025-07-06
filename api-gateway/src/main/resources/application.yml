@@ -108,11 +108,8 @@ spring:
           predicates:
             - Path=/api/messages/**
           filters:
-            - name: AuthenticationFilter
-            - name: CircuitBreaker
-              args:
-                name: messaging-service
-                fallbackUri: forward:/fallback
+            - AuthenticationFilter
+
 
         - id: file-upload-service
           uri: lb://FILE-UPLOAD-SERVICE

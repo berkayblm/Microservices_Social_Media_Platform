@@ -793,21 +793,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('Sidebar profile API response:', profile);
 
     if (sidebarUsername) {
+      // Map display name to username field
       const displayName = profile && profile.displayName ? profile.displayName : '';
-      sidebarUsername.textContent = displayName ? `Name: ${displayName}` : 'Name: (not set)';
+      sidebarUsername.textContent = displayName || 'Display Name';
     }
     if (sidebarFullName) {
-      // Robust username mapping
-      const username = profile && (profile.username || profile.userName || profile.name) ? (profile.username || profile.userName || profile.name) : 'username';
-      sidebarFullName.textContent = `Username: ${username}`;
+      // Map username to full name field
+      const username = profile && profile.username ? profile.username : '';
+      sidebarFullName.textContent = `@${username}`;
     }
-    if (sidebarAvatar && (profile.profilePhoto || profile.profilePictureUrl)) {
-      const url = profile.profilePhoto || profile.profilePictureUrl;
-      sidebarAvatar.outerHTML = `<img src="${url}" class="rounded-circle me-3" width="64" height="64" alt="${profile.displayName || profile.username}" onerror="this.style.display='none';">`;
+    if (sidebarAvatar) {
+      // Map profile picture URL
+      if (profile && profile.profilePictureUrl) {
+        sidebarAvatar.outerHTML = `<img src="${profile.profilePictureUrl}" class="rounded-circle me-3" width="64" height="64" alt="${profile.displayName || profile.username}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`;
+      } else {
+        // Fallback to default avatar with initials
+        const initials = profile && profile.displayName 
+          ? profile.displayName.split(' ').map(n => n[0]).join('').toUpperCase()
+          : (profile && profile.username ? profile.username.charAt(0).toUpperCase() : 'U');
+        sidebarAvatar.innerHTML = initials;
+        sidebarAvatar.style.display = 'flex';
+      }
     }
     // Log what is being set
-    console.log('Sidebar username:', sidebarUsername ? sidebarUsername.textContent : null);
-    console.log('Sidebar full name:', sidebarFullName ? sidebarFullName.textContent : null);
+    console.log('Sidebar display name:', sidebarUsername ? sidebarUsername.textContent : null);
+    console.log('Sidebar username:', sidebarFullName ? sidebarFullName.textContent : null);
+    console.log('Profile picture URL:', profile ? profile.profilePictureUrl : null);
   } catch (err) {
     console.error('Failed to fetch sidebar profile:', err);
   }

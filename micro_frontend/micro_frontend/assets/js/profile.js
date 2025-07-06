@@ -32,6 +32,8 @@ const ProfileController = {
             if (currentUser && String(currentUser.id) === String(userId)) {
                 profile = await API.profiles.getCurrentUserProfile();
                 console.log('Profile response (current user):', profile);
+                console.log('Current user following count:', profile.followingCount);
+                console.log('Current user follower count:', profile.followerCount);
             } else {
                 // Send loggedInUserId header
                 const token = localStorage.getItem('token');
@@ -44,6 +46,8 @@ const ProfileController = {
                 if (!res.ok) throw new Error('Failed to fetch profile');
                 profile = await res.json();
                 console.log('Profile response (other user):', profile);
+                console.log('Other user following count:', profile.followingCount);
+                console.log('Other user follower count:', profile.followerCount);
             }
             if (!profile) {
                 alert('Profile not found.');
@@ -72,27 +76,9 @@ const ProfileController = {
             setText('postCount', profile.postCount || 0);
             setText('followerCount', profile.followerCount || 0);
             setText('followingCount', profile.followingCount || 0);
-            // Also update the card section
-            setText('followersCount', profile.followerCount || 0);
-            setText('followingCount', profile.followingCount || 0);
-
-            // Fetch and set accurate following count
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch(`${API.BASE_URL}/api/follows/${userId}/following`, {
-                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-                });
-                if (res.ok) {
-                    const followingList = await res.json();
-                    const followingCount = Array.isArray(followingList) ? followingList.length : 0;
-                    setText('followingCount', followingCount);
-                    // If you have another element for card section, update it too
-                    const followingCountCard = document.getElementById('followingCount');
-                    if (followingCountCard) followingCountCard.textContent = followingCount;
-                }
-            } catch (err) {
-                console.error('Failed to fetch following count:', err);
-            }
+            console.log('Setting UI values - Post count:', profile.postCount || 0);
+            console.log('Setting UI values - Follower count:', profile.followerCount || 0);
+            console.log('Setting UI values - Following count:', profile.followingCount || 0);
 
             // Set data-user-id on modal triggers
             document.querySelectorAll('[data-bs-target="#followersModal"]').forEach(el => el.dataset.userId = userId);
